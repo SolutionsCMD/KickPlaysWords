@@ -19,54 +19,6 @@ A real-time multiplayer word guessing game designed for Kick streamers and their
 4. Points awarded based on guess accuracy and speed
 5. Leaderboard tracks cumulative scores across rounds
 
-## Setup
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/chat-guessing-game.git
-cd chat-guessing-game
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the server:
-```bash
-npm start
-```
-
-4. Access the application:
-   - **Admin Panel**: `http://localhost:3000/admin.html`
-   - **Player Interface**: `http://localhost:3000`
-
-## Configuration
-
-By default, the server runs on port 3000. You can modify this in `server.js`:
-
-```javascript
-const PORT = process.env.PORT || 3000;
-```
-
-## Deployment
-
-For production deployment:
-
-1. Set the `PORT` environment variable
-2. Update WebSocket URLs in `admin.html` and `index.html` to point to your production server
-3. Consider adding:
-   - Rate limiting for WebSocket connections
-   - Admin authentication
-   - SSL/TLS certificates for secure connections
-
 ## Usage
 
 ### For Streamers (Admin)
@@ -87,13 +39,6 @@ For production deployment:
 4. View the word list and submit your guess
 5. Earn points for correct guesses
 6. Track your position on the leaderboard
-
-## Game Rules
-
-- **Correct Guess**: 100 points
-- **Time Bonus**: Up to 50 additional points based on guess speed
-- **One Guess Per Round**: Choose carefully!
-- **Rounds**: Multiple rounds per game with cumulative scoring
 
 ## Technology Stack
 
@@ -116,7 +61,6 @@ chat-guessing-game/
 
 - The winning word is never transmitted to clients until the round ends
 - All game logic is server-side to prevent manipulation
-- Consider adding authentication for admin panel in production
 
 ## Contributing
 
