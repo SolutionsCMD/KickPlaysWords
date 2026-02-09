@@ -1,6 +1,6 @@
 # Chat Guessing Game
 
-A real-time multiplayer word guessing game designed for Twitch/Kick streamers and their chat viewers. Players compete to guess the correct word from a list, earning points for speed and accuracy.
+A real-time multiplayer word guessing game designed for Kick streamers and their chat viewers. Players compete to guess the correct word from a list, earning points for speed and accuracy.
 
 ## Features
 
@@ -128,4 +128,4 @@ MIT License - feel free to use and modify for your streaming needs.
 
 ## Credits
 
-Built for Twitch/Kick streamers who want interactive chat games.
+Built for Kick streamers who want interactive chat games.
