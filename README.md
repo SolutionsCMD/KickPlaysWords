@@ -1,4 +1,4 @@
-# Chat Guessing Game
+# KickPlaysWords
 
 A real-time multiplayer word guessing game designed for Kick streamers and their chat viewers. Players compete to guess the correct word from a list, earning points for speed and accuracy.
 
