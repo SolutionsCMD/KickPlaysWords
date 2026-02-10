@@ -17,12 +17,16 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Kick Plays Words - Interactive Chat Game">
   <meta name="twitter:description" content="Free word guessing game for Kick streamers with real-time chat integration">
+  
+  <!-- GitHub Repository -->
+  <link rel="canonical" href="https://github.com/SolutionsCMD/KickPlaysWords">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0a0a1a 0%,#101028 50%,#0a0a1a 100%);color:#fff;padding:20px;min-height:100vh}
     .container{max-width:1200px;margin:0 auto}
-    .admin-btn{position:fixed;top:15px;right:15px;padding:8px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#888;font-size:0.85em;cursor:pointer;transition:all 0.3s;z-index:100;text-decoration:none;display:none}
-    .admin-btn:hover{background:rgba(0,255,136,0.15);border-color:#00ff88;color:#00ff88}
+    .admin-btn{display:none}
+    .admin-btn.centered{position:static;display:inline-block;padding:15px 30px;font-size:1.1em;margin:30px auto;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;border:none;box-shadow:0 0 30px rgba(0,255,136,0.5);font-weight:bold;border-radius:8px;text-decoration:none;cursor:pointer}
+    .admin-btn.centered:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(0,255,136,0.7)}
     .game-header{text-align:center;margin-bottom:30px;background:rgba(0,0,0,0.85);padding:30px;border-radius:20px;border:3px solid #00ff88;box-shadow:0 0 30px rgba(0,255,136,0.5);position:relative}
     .game-header h1{font-size:3.5em;color:#00ff88;text-shadow:0 0 30px rgba(0,255,136,0.8);margin-bottom:10px;letter-spacing:2px}
     .game-header .channel-name{position:absolute;bottom:8px;left:14px;color:#4a9eff;font-size:0.75em;opacity:0.6;letter-spacing:1px}
@@ -32,17 +36,15 @@
     .expanded-tag{display:inline-block;background:rgba(255,165,0,0.25);border:1px solid rgba(255,165,0,0.5);color:#ffaa00;padding:2px 10px;border-radius:4px;font-weight:bold;font-size:0.9em;letter-spacing:1px;margin-right:6px}
     .word-display{display:flex;flex-direction:column;align-items:center;gap:12px;margin:20px 0}
     .letter-box{width:80px;height:80px;background:rgba(255,255,255,0.1);border:3px solid rgba(255,255,255,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.5em;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.4s ease}
-    .letter-box.correct{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;border-color:#00ff88;box-shadow:0 0 25px rgba(0,255,136,0.7);animation:mainPop 0.5s ease-out}
-    .letter-box.present{background:linear-gradient(135deg,#ffa500,#ff8c00);color:#000;border-color:#ffa500;box-shadow:0 0 25px rgba(255,165,0,0.7);animation:mainPop 0.5s ease-out}
+    .letter-box.correct{background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;border-color:#00ff88;box-shadow:0 0 25px rgba(0,255,136,0.7)}
+    .letter-box.present{background:linear-gradient(135deg,#ffa500,#ff8c00);color:#000;border-color:#ffa500;box-shadow:0 0 25px rgba(255,165,0,0.7)}
+    .letter-box.pop-anim{animation:mainPop 0.5s ease-out}
     .letter-box.absent{background:rgba(68,68,68,0.8);color:#888;border-color:#555}
     .letter-box.mystery{width:120px;height:120px;font-size:3.5em;border:3px dashed rgba(255,255,255,0.3);background:rgba(255,255,255,0.05)}
     .hidden-count-label{color:#666;font-size:0.85em;margin-top:8px;text-align:center;font-style:italic}
     .prize-banner{background:linear-gradient(135deg,rgba(0,255,136,0.15),rgba(255,215,0,0.15));border:2px solid #ffd700;border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;box-shadow:0 0 20px rgba(255,215,0,0.2)}
     .prize-banner .prize-label{color:#ccc;font-size:0.85em;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
     .prize-banner .prize-amount{color:#ffd700;font-size:2.2em;font-weight:bold;text-shadow:0 0 15px rgba(255,215,0,0.5)}
-    body.compact .prize-banner{padding:8px 12px;margin-bottom:10px;border-radius:8px}
-    body.compact .prize-banner .prize-label{font-size:0.7em;margin-bottom:2px}
-    body.compact .prize-banner .prize-amount{font-size:1.3em}
     .winner-chat-panel{background:rgba(0,0,0,0.85);border:2px solid #ffd700;border-radius:20px;padding:25px;margin-bottom:30px;position:relative;box-shadow:0 0 30px rgba(255,215,0,0.3)}
     .winner-chat-panel h2{color:#ffd700;font-size:1.6em;margin-bottom:15px;display:flex;align-items:center;gap:10px}
     .winner-chat-panel .live-dot{width:10px;height:10px;border-radius:50%;background:#ff4444;display:inline-block;animation:pulse 1.5s infinite}
@@ -69,13 +71,16 @@
     .stat-card{background:rgba(0,0,0,0.85);padding:25px;border-radius:15px;text-align:center;border:2px solid rgba(0,255,136,0.3)}
     .stat-card .value{font-size:4em;color:#00ff88;font-weight:bold;text-shadow:0 0 20px rgba(0,255,136,0.6);margin-bottom:10px;line-height:1}
     .stat-card .label{color:#aaa;font-size:1.2em;text-transform:uppercase;letter-spacing:2px}
+    .stat-card.timer-warning .value{color:#ffa500;text-shadow:0 0 20px rgba(255,165,0,0.6)}
+    .stat-card.timer-danger .value{color:#ff4444;text-shadow:0 0 20px rgba(255,68,68,0.7);animation:pulse 0.5s infinite}
     .guesses-container{background:rgba(0,0,0,0.85);border-radius:20px;padding:30px;border:2px solid rgba(0,255,136,0.3)}
     .guesses-container h2{color:#00ff88;font-size:2em;margin-bottom:25px;text-align:center}
     .guesses-feed{max-height:500px;overflow-y:auto;padding-right:15px}
     .guesses-feed::-webkit-scrollbar{width:10px}
     .guesses-feed::-webkit-scrollbar-track{background:rgba(255,255,255,0.05);border-radius:5px}
     .guesses-feed::-webkit-scrollbar-thumb{background:rgba(0,255,136,0.5);border-radius:5px}
-    .guess-item{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin-bottom:15px;border-left:5px solid rgba(255,255,255,0.2);animation:slideIn 0.4s ease-out}
+    .guess-item{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin-bottom:15px;border-left:5px solid rgba(255,255,255,0.2)}
+    .guess-item.new-guess{animation:slideIn 0.4s ease-out}
     @keyframes slideIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
     .guess-item.winner{background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(0,255,136,0.3));border-left-color:#ffd700;box-shadow:0 0 30px rgba(255,215,0,0.6)}
     .guess-item .username{font-weight:bold;color:#00ff88;font-size:1.3em;margin-bottom:10px;text-align:center}
@@ -88,17 +93,15 @@
     .guess-letter.present{background:linear-gradient(135deg,#ffa500,#ff8c00);color:#000;border-color:#ffa500}
     .guess-letter.absent{background:#444;color:#888;border-color:#555}
     .timestamp{color:#666;font-size:0.95em;text-align:center}
-    .no-game{text-align:center;padding:80px 20px;color:#666}
+    .no-game{text-align:center;padding:80px 40px;color:#666;display:flex;flex-direction:column;align-items:center;justify-content:center}
     .no-game h3{font-size:2.5em;margin-bottom:15px;color:#888}
-    .no-game p{font-size:1.3em;color:#666}
+    .no-game p{font-size:1.3em;color:#666;margin-bottom:30px}
     .winner-banner{background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(0,255,136,0.15));border:3px solid #ffd700;color:#ffd700;padding:30px;border-radius:20px;text-align:center;margin-bottom:30px;font-size:2em;font-weight:bold;box-shadow:0 0 30px rgba(255,215,0,0.4)}
     .stopped-banner{background:rgba(255,68,68,0.15);border:3px solid rgba(255,68,68,0.5);color:#ff6666;padding:25px;border-radius:20px;text-align:center;margin-bottom:30px;font-size:1.5em;font-weight:bold}
     .countdown-banner{background:rgba(0,255,136,0.1);border:2px solid rgba(0,255,136,0.3);border-radius:15px;padding:20px;text-align:center;margin-bottom:25px;color:#00ff88;font-size:1.2em}
     .countdown-banner .time{font-size:2em;font-weight:bold;margin-top:5px}
     .mode-badge{display:inline-block;background:rgba(0,255,136,0.2);border:2px solid #00ff88;color:#00ff88;padding:8px 20px;border-radius:25px;font-size:0.5em;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
     .mode-badge.fun{background:rgba(255,165,0,0.2);border-color:#ffa500;color:#ffa500}
-    .fun-timer{font-size:2em;color:#ffa500;font-weight:bold;margin:10px 0;text-shadow:0 0 15px rgba(255,165,0,0.5)}
-    .fun-timer.urgent{color:#ff4444;text-shadow:0 0 15px rgba(255,68,68,0.7);animation:pulse 0.5s infinite}
     .no-guesses{text-align:center;padding:60px 20px;color:#666;font-size:1.5em}
     .hints-display{margin-bottom:20px}
     .hints-display h3{display:none}
@@ -122,89 +125,93 @@
     .modal-words{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .modal-words span{background:rgba(0,255,136,0.15);border:1px solid rgba(0,255,136,0.3);padding:4px 12px;border-radius:6px;color:#00ff88;font-size:0.9em}
     .modal-stat{color:#999;margin-bottom:8px} .modal-stat strong{color:#fff}
-    .credit{position:fixed;bottom:10px;right:15px;color:rgba(255,255,255,0.25);font-size:0.8em;letter-spacing:1px;pointer-events:none}
-    .compact-toggle{position:fixed;top:15px;left:15px;padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#888;font-size:0.8em;cursor:pointer;z-index:100;transition:all 0.3s}
-    .compact-toggle:hover{background:rgba(0,255,136,0.15);border-color:#00ff88;color:#00ff88}
-    .compact-toggle.on{background:rgba(0,255,136,0.15);border-color:#00ff88;color:#00ff88}
     /* SEO Footer */
     .seo-footer{position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,15,0.95);border-top:1px solid rgba(255,255,255,0.06);z-index:50;font-size:0.72em;color:#555;transition:max-height 0.3s ease}
-    .seo-footer-bar{display:flex;align-items:center;justify-content:space-between;padding:5px 14px;cursor:pointer;user-select:none}
-    .seo-footer-bar span{color:#444;letter-spacing:0.5px}
-    .seo-footer-bar .toggle-arrow{color:#444;font-size:0.9em;transition:transform 0.3s}
+    .seo-footer-bar{display:flex;align-items:center;justify-content:center;padding:5px 14px;cursor:pointer;user-select:none;position:relative}
+    .seo-footer-bar span:first-child{color:#444;letter-spacing:0.5px}
+    .seo-footer-bar .toggle-arrow{color:#444;font-size:0.9em;transition:transform 0.3s;position:absolute;right:14px}
     .seo-footer-bar .toggle-arrow.open{transform:rotate(180deg)}
     .seo-footer-detail{max-height:0;overflow:hidden;transition:max-height 0.35s ease;padding:0 14px}
     .seo-footer-detail.open{max-height:200px;padding:6px 14px 10px}
-    .seo-footer-detail p{color:#4a4a4a;line-height:1.45;margin-bottom:4px}
+    .seo-footer-detail p{color:#4a4a4a;line-height:1.45;margin-bottom:4px;text-align:center}
     .seo-footer-detail a{color:#2a7a50;text-decoration:none}
-    body.compact .seo-footer{display:none}
-    /* COMPACT MODE - big elements, zero fluff, tight spacing for 1080p→500px OBS */
-    body.compact{padding:4px}
-    body.compact .admin-btn{display:none}
-    body.compact .compact-toggle{position:fixed;top:4px;left:4px;right:auto;padding:4px 10px;font-size:0.7em;opacity:0.3;width:auto;z-index:100}
-    body.compact .compact-toggle:hover{opacity:1}
-    body.compact .container{max-width:1040px;margin:0 auto;padding:0}
-    /* HIDE all fluff */
+    /* COMPACT MODE — full-screen OBS overlay layout */
+    body.compact{padding:0;margin:0;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+    body.compact .container{max-width:100%;width:100%;margin:0;padding:0;flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+    /* HIDE everything not needed */
     body.compact .game-header h1{display:none}
     body.compact .mode-badge{display:none}
     body.compact .mode-info{display:none}
     body.compact .letter-warn{display:none}
     body.compact .expanded-mode-banner{display:none}
     body.compact .hidden-count-label{display:none}
-    body.compact .timestamp{display:none}
     body.compact .guesses-container h2{display:none}
-    /* GAME HEADER - just the word display */
-    body.compact .game-header{padding:12px 8px;margin-bottom:8px;border-radius:12px;border-width:3px;box-shadow:none}
-    body.compact .game-header .channel-name{position:static;text-align:center;font-size:1.2em;margin-top:2px}
-    body.compact .word-display{gap:8px;margin:4px 0}
-    body.compact .letter-box{width:104px;height:104px;font-size:3.4em;border-radius:16px;border-width:6px;box-shadow:none;font-weight:bold}
-    body.compact .letter-box.mystery{width:116px;height:116px;font-size:4em}
-    body.compact .word-columns{gap:12px}
-    body.compact .word-column{gap:6px}
-    body.compact .yellow-mini{width:48px;height:48px;font-size:1.5em;border-radius:8px;border-width:3px}
-    body.compact .absent-letters{display:none}
-    body.compact .position-yellows{gap:4px}
-    /* FUN TIMER - big and bold */
-    body.compact .fun-timer{font-size:4.4em;margin:8px 0;font-weight:bold}
-    /* WINNER / STATUS - big and readable */
-    body.compact .winner-banner{padding:20px;font-size:2.8em;margin-bottom:8px;border-radius:12px;border-width:4px;box-shadow:none;font-weight:bold}
-    body.compact .stopped-banner{padding:16px;font-size:2.4em;margin-bottom:8px}
-    body.compact .countdown-banner{padding:16px;font-size:2.2em;margin-bottom:8px;border-radius:12px}
-    body.compact .countdown-banner .time{font-size:3.2em;margin-top:4px}
-    /* PRIZE - big */
-    body.compact .prize-banner{padding:16px;margin-bottom:8px;border-radius:12px;border-width:4px}
-    body.compact .prize-banner .prize-label{font-size:1.6em;margin-bottom:0}
-    body.compact .prize-banner .prize-amount{font-size:3.2em}
-    /* STATS - compact row */
-    body.compact .stats-bar{gap:8px;margin-bottom:8px;grid-template-columns:1fr 1fr}
-    body.compact .stat-card{padding:12px 8px;border-radius:12px;border-width:2px}
-    body.compact .stat-card .value{font-size:3.6em;margin-bottom:0;text-shadow:none;font-weight:bold}
-    body.compact .stat-card .label{font-size:1.3em;letter-spacing:2px}
-    /* HINTS - big and readable */
-    body.compact .hints-display{margin-bottom:8px}
-    body.compact .hints-display h3{display:none}
-    body.compact .hint-item{padding:14px 18px;font-size:2.4em;margin-bottom:6px;border-left-width:8px;font-weight:500;line-height:1.3}
-    /* GUESSES - readable tiles, tight rows */
-    body.compact .guesses-container{padding:8px;border-radius:12px;margin-bottom:8px;border-width:2px}
-    body.compact .guesses-feed{max-height:600px}
-    body.compact .guess-item{padding:8px 12px;margin-bottom:6px;border-radius:8px;border-left-width:8px}
-    body.compact .guess-item .username{font-size:1.9em;margin-bottom:4px;font-weight:bold}
-    body.compact .guess-item.winner .username{font-size:2.1em}
-    body.compact .guess-word{gap:6px;margin-bottom:4px}
-    body.compact .guess-letter{width:60px;height:60px;font-size:1.9em;border-radius:8px;border-width:4px;font-weight:bold}
-    /* WINNER CHAT */
-    body.compact .winner-chat-panel{padding:12px;margin-bottom:8px;border-radius:12px}
-    body.compact .winner-chat-panel h2{font-size:2.2em;margin-bottom:8px}
-    body.compact .winner-chat-feed{max-height:240px}
-    body.compact .winner-msg{padding:8px 12px;margin-bottom:6px;font-size:1.9em}
-    /* LEADERBOARD */
-    body.compact .leaderboard-section{padding:12px;margin-top:8px;border-radius:12px;border-width:2px}
-    body.compact .leaderboard-section h2{font-size:2.2em;margin-bottom:8px}
-    body.compact .lb-table th{padding:8px 12px;font-size:1.5em}
-    body.compact .lb-table td{padding:8px 12px;font-size:1.8em}
-    /* NO GAME */
-    body.compact .no-game{padding:80px 20px}
-    body.compact .no-game h3{font-size:3.2em}
-    body.compact .no-game p{font-size:2em}
+    body.compact .channel-name{display:none}
+    body.compact .prize-banner{display:none}
+    body.compact .winner-chat-panel{display:none}
+    body.compact .hints-display{display:none}
+    body.compact .leaderboard-section{display:none}
+    body.compact .seo-footer{display:none}
+    body.compact .credit{display:none}
+    body.compact footer{display:none}
+    body.compact .no-game{display:flex;align-items:center;justify-content:center;flex:1}
+    body.compact .no-game h3{font-size:3em}
+    body.compact .no-game p{font-size:1.8em}
+    body.compact .no-game .admin-btn.centered{display:none}
+    /* GAME HEADER — word at the very top, tight */
+    body.compact .game-header{padding:16px 4px 4px;margin:0;border-radius:0;border:none;box-shadow:none;background:transparent;flex-shrink:0;max-width:800px;margin-left:auto;margin-right:auto;width:100%}
+    body.compact .word-display{gap:6px;margin:0}
+    body.compact .letter-box{width:90px;height:90px;font-size:3em;border-radius:12px;border-width:5px;box-shadow:none;font-weight:bold}
+    body.compact .letter-box.mystery{width:100px;height:100px;font-size:3.4em}
+    body.compact .word-columns{gap:8px}
+    body.compact .word-column{gap:4px}
+    body.compact .yellow-mini{width:40px;height:40px;font-size:1.3em;border-radius:6px;border-width:2px}
+    body.compact .position-yellows{gap:3px}
+    /* ABSENT LETTERS — show in compact, tight row */
+    body.compact .absent-letters{margin:4px auto;padding:6px 10px;border-radius:8px;gap:4px;max-width:800px}
+    body.compact .absent-letters .absent-label{font-size:0.75em;margin-bottom:2px}
+    body.compact .absent-mini{width:28px;height:28px;font-size:0.8em;border-radius:4px}
+    /* WINNER / STATUS — compact banners with max width */
+    body.compact .winner-banner{padding:12px;font-size:1.8em;margin:0 auto 4px;border-radius:10px;border-width:3px;box-shadow:none;font-weight:bold;flex-shrink:0;max-width:800px;width:100%}
+    body.compact .stopped-banner{padding:10px;font-size:1.6em;margin:0 auto 4px;border-radius:10px;flex-shrink:0;max-width:800px;width:100%}
+    body.compact .countdown-banner{padding:10px;font-size:1.4em;margin:0 auto 4px;border-radius:10px;flex-shrink:0;max-width:800px;width:100%}
+    body.compact .countdown-banner .time{font-size:2em;margin-top:2px}
+    /* STATS — small fixed-size centered row */
+    body.compact .stats-bar{display:flex;gap:10px;margin:6px auto;justify-content:center;flex-shrink:0;max-width:800px}
+    body.compact .stat-card{padding:6px 22px;border-radius:10px;border:2px solid rgba(0,255,136,0.3);flex:0 0 auto}
+    body.compact .stat-card .value{font-size:2em;margin-bottom:0;text-shadow:none;font-weight:bold}
+    body.compact .stat-card .label{font-size:0.75em;letter-spacing:1px}
+    /* GUESSES — fills remaining space, max width */
+    body.compact .guesses-container{padding:4px 8px;border-radius:0;margin:0 auto;border:none;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:transparent;max-width:800px;width:100%}
+    body.compact .guesses-feed{flex:1;max-height:none;overflow-y:auto;padding-right:6px}
+    body.compact .guess-item{padding:6px 10px;margin:0 auto 4px;border-radius:6px;border-left:none;animation:none;width:var(--guess-item-width, fit-content);min-width:280px;max-width:100%}
+    body.compact .guess-item.winner{border-left:none}
+    body.compact .guess-item .username{font-size:1.4em;margin-bottom:3px;font-weight:bold}
+    body.compact .guess-item.winner .username{font-size:1.6em}
+    body.compact .guess-word{gap:4px;margin-bottom:3px}
+    body.compact .guess-letter{width:44px;height:44px;font-size:1.5em;border-radius:6px;border-width:3px;font-weight:bold}
+    body.compact .timestamp{display:none}
+    /* EASTER EGG BANNER */
+    .easter-egg-banner{background:linear-gradient(135deg,rgba(138,43,226,0.25),rgba(255,215,0,0.15));border:3px solid #b06aff;color:#e0b0ff;padding:25px;border-radius:20px;text-align:center;margin-bottom:25px;font-size:1.5em;font-weight:bold;box-shadow:0 0 30px rgba(138,43,226,0.4);animation:easterPulse 1s ease-in-out 3}
+    @keyframes easterPulse{0%,100%{box-shadow:0 0 30px rgba(138,43,226,0.4)}50%{box-shadow:0 0 60px rgba(138,43,226,0.8)}}
+    body.compact .easter-egg-banner{padding:12px;font-size:1.4em;margin:0 auto 4px;border-radius:10px;max-width:800px;width:100%}
+    /* SLIDEOUT MENU for compact mode */
+    .compact-slideout{position:fixed;top:0;right:0;width:44px;height:44px;z-index:200;transition:width 0.3s ease}
+    .compact-slideout:hover{width:auto}
+    .compact-slideout-trigger{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);border-radius:0 0 0 8px;cursor:pointer;color:#888;font-size:1.2em;transition:all 0.2s}
+    .compact-slideout-trigger:hover{color:#00ff88;background:rgba(0,0,0,0.8)}
+    .compact-slideout-menu{display:none;position:absolute;top:44px;right:0;background:rgba(10,10,26,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:0 0 0 10px;padding:8px;flex-direction:column;gap:6px;min-width:160px}
+    .compact-slideout:hover .compact-slideout-menu{display:flex}
+    .compact-slideout-menu button{padding:8px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#ccc;font-size:0.85em;cursor:pointer;text-align:left;transition:all 0.2s;white-space:nowrap}
+    .compact-slideout-menu button:hover{background:rgba(0,255,136,0.15);border-color:#00ff88;color:#00ff88}
+    /* LEADERBOARD ONLY MODE */
+    body.leaderboard-only .game-header,body.leaderboard-only .stats-bar,body.leaderboard-only .guesses-container,body.leaderboard-only .hints-display,body.leaderboard-only .winner-chat-panel,body.leaderboard-only .prize-banner,body.leaderboard-only .winner-banner,body.leaderboard-only .stopped-banner,body.leaderboard-only .countdown-banner,body.leaderboard-only .seo-footer,body.leaderboard-only footer,body.leaderboard-only .no-game,body.leaderboard-only .compact-slideout{display:none!important}
+    body.leaderboard-only .leaderboard-section{display:block!important;margin-top:0}
+    body.leaderboard-only .container{padding-top:10px;max-width:800px;margin:0 auto}
+    body.leaderboard-only .leaderboard-section{max-width:800px;margin:0 auto}
+    .lb-new-room-btn{display:block;text-align:center;margin-top:20px}
+    .lb-new-room-btn a{padding:12px 24px;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#000;border:none;border-radius:8px;font-size:1em;font-weight:bold;text-decoration:none;cursor:pointer;display:inline-block;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s}
+    .lb-new-room-btn a:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,255,136,0.4)}
   </style>
 </head>
 <body>
@@ -223,8 +230,13 @@
   }
   </script>
 
-  <a class="admin-btn" id="adminBtn" href="#">Streamers Click Here</a>
-  <button class="compact-toggle" id="compactToggle" onclick="toggleCompact()">Compact</button>
+  <div class="compact-slideout" id="compactSlideout">
+    <div class="compact-slideout-trigger">☰</div>
+    <div class="compact-slideout-menu" id="slideoutMenu">
+      <button id="compactToggleBtn" onclick="toggleCompact()">Compact Mode</button>
+      <button onclick="window.open('/admin','_blank','width=1400,height=900')">Admin Panel</button>
+    </div>
+  </div>
   <div class="container">
     <div id="gameContent"><div class="no-game"><h3>No Active Game</h3><p>Waiting for the streamer to start a game...</p></div></div>
     <div class="leaderboard-section" id="leaderboardSection" style="display:none">
@@ -244,60 +256,31 @@
       <p>A free, browser-based word guessing game built for <a href="https://kickplayswords.com">Kick.com</a> streamers. Viewers guess words in chat and get real-time Wordle-style feedback with green, orange, and gray letters. Features multiple modes (Wordle, Hard, Fun), live leaderboards, and prize tracking. No install needed just open in your browser and add as an OBS source.</p>
     </div>
   </footer>
-  <div class="credit">Created by OsrsSolutions</div>
+  <div class="credit" style="display:none"></div>
   <script>
     var params = new URLSearchParams(window.location.search);
     var roomId = params.get('room');
     var adminToken = null;
     var ws = null, gameState = null, leaderboardData = [], autoRestartCountdown = 0;
     var winnerChatDismissed = false;
-    var funTimerInterval = null;
-    var funTimerBase = null; // { serverLeft, clientTime } - snapshot when received
-    function startFunTimerTick() {
-      if (funTimerInterval) clearInterval(funTimerInterval);
-      funTimerBase = { serverLeft: gameState.funTimeLeft || 60, clientTime: Date.now() };
-      funTimerInterval = setInterval(function() {
-        if (!gameState || !gameState.active || gameState.mode !== 'fun') { clearInterval(funTimerInterval); funTimerInterval = null; return; }
-        var el = document.getElementById('funTimerValue');
-        if (el && funTimerBase) {
-          var elapsed = Math.floor((Date.now() - funTimerBase.clientTime) / 1000);
-          var left = Math.max(0, funTimerBase.serverLeft - elapsed);
-          el.textContent = left;
-          if (left <= 10) el.parentElement.classList.add('urgent');
-        }
-      }, 250);
-    }
+    var easterEggMessage = null;
+    var isLeaderboardOnly = params.get('view') === 'leaderboard';
 
-    function showAdminButton() {
-      var btn = document.getElementById('adminBtn');
-      btn.style.display = 'block';
-      btn.onclick = function(e) {
-        e.preventDefault();
-        // Open admin panel in new window
-        window.open('/admin', '_blank', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
-        // Current page is the viewer — tell them
-        btn.textContent = 'Admin Panel Opened';
-        btn.style.background = 'rgba(0,255,136,0.15)';
-        btn.style.borderColor = '#00ff88';
-        btn.style.color = '#00ff88';
-        setTimeout(function() { btn.textContent = 'Open Admin Panel'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }, 3000);
-        return false;
-      };
+    // Leaderboard-only mode
+    if (isLeaderboardOnly) {
+      document.body.classList.add('leaderboard-only');
     }
 
     function toggleCompact() {
       document.body.classList.toggle('compact');
       var isOn = document.body.classList.contains('compact');
-      var btn = document.getElementById('compactToggle');
-      btn.classList.toggle('on', isOn);
-      btn.textContent = isOn ? 'Compact: ON' : 'Compact';
+      document.getElementById('compactToggleBtn').textContent = isOn ? 'Exit Compact' : 'Compact Mode';
       localStorage.setItem('chatgame_compact', isOn ? '1' : '0');
     }
     // Restore compact mode from localStorage
     if (localStorage.getItem('chatgame_compact') === '1') {
       document.body.classList.add('compact');
-      document.getElementById('compactToggle').classList.add('on');
-      document.getElementById('compactToggle').textContent = 'Compact: ON';
+      document.getElementById('compactToggleBtn').textContent = 'Exit Compact';
     }
 
     async function init() {
@@ -306,7 +289,6 @@
         var savedToken = localStorage.getItem('chatgame_admin_token');
         if (savedToken) {
           adminToken = savedToken;
-          showAdminButton();
         }
         connectWebSocket();
       } else {
@@ -320,7 +302,6 @@
               roomId = data.roomId;
               adminToken = savedToken;
               history.replaceState(null, '', '/?room=' + roomId);
-              showAdminButton();
               connectWebSocket();
               return;
             }
@@ -336,7 +317,6 @@
           adminToken = data.adminToken;
           localStorage.setItem('chatgame_admin_token', adminToken);
           history.replaceState(null, '', '/?room=' + roomId);
-          showAdminButton();
           connectWebSocket();
         } catch(e) { console.error('Failed to create room:', e); }
       }
@@ -349,13 +329,19 @@
       ws.onmessage = function(event) {
         var data = JSON.parse(event.data);
         switch (data.type) {
-          case 'gameUpdate': gameState = data.game; if (gameState.active && !gameState.winner) winnerChatDismissed = false; renderGame(); break;
+          case 'gameUpdate': 
+            gameState = data.game; 
+            console.log('Game update - timerEndTime:', gameState.timerEndTime);
+            if (gameState.active && !gameState.winner) winnerChatDismissed = false; 
+            renderGame(); 
+            break;
           case 'newGuess': gameState = data.game; addGuessToFeed(data.guess); updateMainWord(); updateStats(); break;
           case 'gameEnded': gameState = data.game; renderGame(); break;
           case 'hintRevealed': gameState = data.game; renderGame(); break;
           case 'leaderboard': leaderboardData = data.data; renderLeaderboard(); break;
           case 'autoRestart': autoRestartCountdown = data.countdown; if (!document.getElementById('countdownBanner')) renderGame(); else updateCountdown(); break;
           case 'winnerChat': if (gameState) { gameState.winnerChatLog = data.log; renderWinnerChat(); } break;
+          case 'easterEgg': easterEggMessage = data.message; break;
         }
       };
     }
@@ -424,19 +410,55 @@
     function updateStats() { var el = document.getElementById('statGuesses'); if (el) el.textContent = gameState.stats.totalGuesses; }
     function getTimerText() {
       if (!gameState || !gameState.startTime) return '-';
+      
+      // If there's a timer end time (countdown mode), show time remaining
+      if (gameState.timerEndTime) {
+        if (gameState.active && !gameState.endTime) {
+          var remaining = Math.max(0, Math.floor((gameState.timerEndTime - Date.now()) / 1000));
+          var mins = Math.floor(remaining / 60);
+          var secs = remaining % 60;
+          return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+        // Game ended with timer — show 0:00
+        return '0:00';
+      }
+      
+      // Otherwise show elapsed time
       var end = gameState.endTime || Date.now();
       var secs = Math.max(0, Math.floor((end - gameState.startTime) / 1000));
       return secs + 's';
     }
 
+
     function renderGame() {
       var content = document.getElementById('gameContent');
+      
       if (!gameState || (!gameState.active && !gameState.stopped && !gameState.winner && !gameState.revealedWord)) {
-        content.innerHTML = '<div class="no-game"><h3>No Active Game</h3><p>Waiting for the streamer to start a game...</p></div>';
+        content.innerHTML = '<div class="no-game"><h3>No Active Game</h3><p>Waiting for the streamer to start a game...</p><div style="text-align:center;margin-top:20px"><a class="admin-btn centered" id="centeredAdminBtn" href="#" style="display:inline-block">Streamers Click Here</a></div></div>';
+        
+        // Setup centered button
+        var centeredBtn = document.getElementById('centeredAdminBtn');
+        if (centeredBtn) {
+          centeredBtn.onclick = function(e) {
+            e.preventDefault();
+            window.open('/admin', '_blank', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
+            centeredBtn.textContent = 'Admin Panel Opened';
+            setTimeout(function() { centeredBtn.textContent = 'Streamers Click Here'; }, 3000);
+            return false;
+          };
+        }
         return;
       }
+      
       // Reset countdown when a new active game starts
       if (gameState.active) autoRestartCountdown = 0;
+      // Set consistent guess width for compact mode based on word length
+      var guessLetterW = 44 + 3 + 3; // width + border*2 in compact
+      var guessGap = 4;
+      var guessItemPad = 20; // 10px * 2
+      var wl = gameState.wordLength || 5;
+      var calcWidth = (wl * guessLetterW) + ((wl - 1) * guessGap) + guessItemPad + 40; // extra for username padding
+      document.documentElement.style.setProperty('--guess-item-width', calcWidth + 'px');
       var html = '';
       if (gameState.winner) {
         var wgc = gameState.winnerGuessCount || '?';
@@ -444,6 +466,7 @@
         html += '<div class="winner-banner">' + gameState.winner + ' guessed the word in ' + wgc + ' guess' + (wgc !== 1 ? 'es' : '') + '! (' + tg + ' total)</div>';
       }
       if (gameState.stopped && !gameState.winner) html += '<div class="stopped-banner">Game Stopped</div>';
+      if (easterEggMessage) { html += '<div class="easter-egg-banner">🧩 ' + escapeHtml(easterEggMessage) + '</div>'; easterEggMessage = null; }
       if (autoRestartCountdown > 0) html += '<div class="countdown-banner" id="countdownBanner">Next game starting in<div class="time">' + autoRestartCountdown + 's</div></div>';
       var ch = gameState.channelName || '';
       var isWordleStyle = gameState.mode === 'wordle' || gameState.mode === 'fun';
@@ -454,7 +477,6 @@
       html += '<div class="mode-badge' + (gameState.mode === 'fun' ? ' fun' : '') + '">' + modeName + '</div>';
       if (desc) html += '<div class="mode-info">' + desc + '</div>';
       if (isWordleStyle) html += '<div class="letter-warn">Letters below only update from valid dictionary words with the correct number of letters.</div>';
-      if (gameState.mode === 'fun' && gameState.active) html += '<div class="fun-timer" id="funTimer">⏱ <span id="funTimerValue">' + (gameState.funTimeLeft || 60) + '</span>s</div>';
       html += '<div class="word-display" id="mainWordDisplay">' + renderMainWord() + '</div>';
       if (gameState.hideLetterCount && !gameState.revealedWord) html += '<div class="hidden-count-label">Letter count hidden</div>';
       if (gameState.expandedWordPool) html += '<div class="expanded-mode-banner"><span class="expanded-tag">x100 MODE</span> Expanded word pool active — words may be obscure and any number of letters</div>';
@@ -478,14 +500,27 @@
         gameState.hintsRevealed.forEach(function(h) { html += '<div class="hint-item">' + h + '</div>'; });
         html += '</div>';
       }
-      html += '<div class="stats-bar"><div class="stat-card"><div class="value" id="statGuesses">' + gameState.stats.totalGuesses + '</div><div class="label">Guesses</div></div><div class="stat-card"><div class="value" id="timer">' + getTimerText() + '</div><div class="label">Time</div></div></div>';
+      html += '<div class="stats-bar"><div class="stat-card"><div class="value" id="statGuesses">' + gameState.stats.totalGuesses + '</div><div class="label">Guesses</div></div><div class="stat-card" id="timerCard"><div class="value" id="timer">' + getTimerText() + '</div><div class="label">' + (gameState.timerEndTime ? 'Time Left' : 'Time') + '</div></div></div>';
       html += '<div class="guesses-container"><h2>Recent Guesses</h2><div class="guesses-feed" id="guessesFeed">';
       if (gameState.guesses && gameState.guesses.length > 0) {
         gameState.guesses.slice().reverse().slice(0, 30).forEach(function(g) { html += renderGuess(g); });
       } else html += '<div class="no-guesses">No guesses yet...</div>';
       html += '</div></div>';
       content.innerHTML = html;
-      if (gameState.mode === 'fun' && gameState.active) startFunTimerTick();
+      
+      // Apply timer warning classes on initial render
+      if (gameState.timerEndTime && gameState.active) {
+        var remaining = Math.max(0, Math.floor((gameState.timerEndTime - Date.now()) / 1000));
+        var timerCard = document.getElementById('timerCard');
+        if (timerCard) {
+          if (remaining <= 30 && remaining > 10) {
+            timerCard.classList.add('timer-warning');
+          } else if (remaining <= 10) {
+            timerCard.classList.add('timer-danger');
+          }
+        }
+      }
+      
     }
 
     function escapeHtml(text) { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
@@ -519,7 +554,8 @@
       var feed = document.getElementById('guessesFeed');
       if (!feed) return;
       var ng = feed.querySelector('.no-guesses'); if (ng) ng.remove();
-      feed.insertAdjacentHTML('afterbegin', renderGuess(guess));
+      var html = renderGuess(guess).replace('class="guess-item', 'class="guess-item new-guess');
+      feed.insertAdjacentHTML('afterbegin', html);
       var items = feed.querySelectorAll('.guess-item');
       if (items.length > 30) items[items.length - 1].remove();
     }
@@ -527,13 +563,26 @@
     function renderLeaderboard() {
       var section = document.getElementById('leaderboardSection');
       var body = document.getElementById('leaderboardBody');
-      if (!leaderboardData || !leaderboardData.length) { section.style.display = 'none'; return; }
+      if (!leaderboardData || !leaderboardData.length) { 
+        if (isLeaderboardOnly) { section.style.display = 'block'; body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;padding:30px">No leaderboard data yet</td></tr>'; }
+        else { section.style.display = 'none'; }
+        return; 
+      }
       section.style.display = 'block';
       body.innerHTML = leaderboardData.slice(0, 20).map(function(p, i) {
         var rc = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
         var medal = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : (i + 1);
         return '<tr onclick="showPlayer(' + i + ')"><td class="lb-rank ' + rc + '">' + medal + '</td><td class="lb-name">' + p.username + '</td><td class="lb-wins">' + p.wins + '</td><td class="lb-stat">' + (p.avgGuesses || '-') + '</td><td class="lb-stat">' + (p.fastestWin || '-') + '</td></tr>';
       }).join('');
+      // Add new room button for leaderboard-only view
+      var existingNewRoom = document.getElementById('lbNewRoomBtn');
+      if (isLeaderboardOnly && !existingNewRoom) {
+        var btnDiv = document.createElement('div');
+        btnDiv.className = 'lb-new-room-btn';
+        btnDiv.id = 'lbNewRoomBtn';
+        btnDiv.innerHTML = '<a href="/" target="_blank">Streamers Click Here</a>';
+        section.appendChild(btnDiv);
+      }
     }
     function showPlayer(i) {
       var p = leaderboardData[i]; if (!p) return;
@@ -548,9 +597,38 @@
     setInterval(function() {
       if (gameState && gameState.active && gameState.startTime && !gameState.endTime) {
         var el = document.getElementById('timer');
-        if (el) el.textContent = Math.floor((Date.now() - gameState.startTime) / 1000) + 's';
+        var timerCard = el ? el.closest('.stat-card') : null;
+        
+        if (el) {
+          // If there's a countdown timer
+          if (gameState.timerEndTime) {
+            var remaining = Math.max(0, Math.floor((gameState.timerEndTime - Date.now()) / 1000));
+            var mins = Math.floor(remaining / 60);
+            var secs = remaining % 60;
+            el.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+            
+            // Add warning colors
+            if (timerCard) {
+              timerCard.classList.remove('timer-warning', 'timer-danger');
+              if (remaining <= 30 && remaining > 10) {
+                timerCard.classList.add('timer-warning');
+              } else if (remaining <= 10) {
+                timerCard.classList.add('timer-danger');
+              }
+            }
+          } else {
+            // Elapsed time mode
+            el.textContent = Math.floor((Date.now() - gameState.startTime) / 1000) + 's';
+            if (timerCard) timerCard.classList.remove('timer-warning', 'timer-danger');
+          }
+        }
       }
     }, 1000);
   </script>
+  <footer style="text-align:center;padding:20px;margin-top:40px;border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.85em">
+    <p style="margin-bottom:8px">KickPlaysWords - Real-time word guessing game for Kick streamers</p>
+    <p>Contact: <a href="mailto:contact@kickplayswords.com" style="color:#00ff88;text-decoration:none">contact@kickplayswords.com</a> | 
+    GitHub: <a href="https://github.com/SolutionsCMD/KickPlaysWords" target="_blank" rel="noopener" style="color:#00ff88;text-decoration:none">SolutionsCMD/KickPlaysWords</a></p>
+  </footer>
 </body>
 </html>

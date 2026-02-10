@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Chat Guessing Game</title>
+  <title>Admin - KickPlaysWords | Real-time Word Guessing Game</title>
+  <meta name="description" content="Admin panel for KickPlaysWords - Real-time word guessing game for Kick streamers. Manage games, word lists, and viewer interactions.">
+  <meta name="keywords" content="Kick streaming, word game, chat game, streamer tools, interactive game">
+  <meta property="og:title" content="KickPlaysWords - Admin Panel">
+  <meta property="og:description" content="Real-time word guessing game for Kick streamers">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://github.com/SolutionsCMD/KickPlaysWords">
   <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -13,6 +19,7 @@
     .header h1{font-size:2.2em;color:#00ff88;margin-bottom:8px}
     .header .subtitle{color:#999;font-size:1em}
     .header-actions{margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .header-actions .button{min-width:180px;text-align:center}
     .main-grid{display:grid;grid-template-columns:380px 1fr;gap:20px;margin-bottom:20px}
     .panel{background:rgba(255,255,255,0.05);border-radius:15px;padding:22px;border:1px solid rgba(255,255,255,0.1)}
     .panel h2{color:#00ff88;margin-bottom:18px;font-size:1.4em;display:flex;align-items:center;gap:10px}
@@ -114,7 +121,6 @@
     .connection-status.connected{background:rgba(0,255,136,0.9);color:#000}
     .connection-status.disconnected{background:rgba(255,68,68,0.9)}
     .connection-status.unauthorized{background:rgba(255,165,0,0.9);color:#000}
-    .credit{position:fixed;bottom:10px;right:15px;color:rgba(255,255,255,0.25);font-size:0.8em;letter-spacing:1px;pointer-events:none;z-index:999}
     .mod-access-section{background:rgba(138,43,226,0.06);border:2px solid rgba(138,43,226,0.3);border-radius:10px;padding:15px;margin-top:16px}
     .mod-access-section h3{color:#b06aff;font-size:0.95em;margin-bottom:10px}
     .mod-preset-tabs{display:flex;gap:6px;margin-bottom:12px}
@@ -150,11 +156,12 @@
   <div class="connection-status disconnected" id="connectionStatus">Connecting...</div>
   <div class="container" id="mainContent" style="display:none">
     <div class="header">
-      <h1>Chat Guessing Game - Admin</h1>
+      <h1>KickPlaysWords - Admin</h1>
       <p class="subtitle">Room: <strong id="roomIdDisplay">--</strong></p>
       <div class="header-actions">
         <button class="button button-secondary button-sm" onclick="openViewer()">Open Viewer Page</button>
         <button class="button button-primary button-sm" onclick="copyViewerLink()">Copy Viewer Link</button>
+        <button class="button button-warning button-sm" onclick="copyLeaderboardLink()">Copy Leaderboard Link</button>
       </div>
     </div>
     <div id="modBanner" class="mod-banner" style="display:none">
@@ -167,17 +174,24 @@
         <div class="button-group" style="margin-bottom:18px" id="startBtnWrap"><button class="button button-primary button-full" style="padding:14px 20px;font-size:1.1em" onclick="startGame()">Start Game</button></div>
         <div class="button-group" style="margin-bottom:18px" id="stopRevealWrap"><button class="button button-danger" style="flex:1;padding:12px" onclick="stopGame()">Stop</button><button class="button button-warning" style="flex:1;padding:12px" onclick="revealWord()">Reveal Word</button></div>
         <div class="channel-box" id="channelWrap"><h3>Chat Channel</h3><div class="input-row"><input type="text" id="channelInput" placeholder="mizkif, kick.com/mizkif, or chatroom ID"><button class="button button-secondary button-sm" onclick="connectChannel()">Connect</button></div><div class="channel-status" id="channelStatus">Not connected</div></div>
-        <div class="mode-tabs" id="modeTabsWrap"><div class="mode-tab" data-mode="wordle"><strong>Wordle</strong></div><div class="mode-tab active" data-mode="noHints"><strong>Hard Mode</strong></div><div class="mode-tab" data-mode="fun" style="border-color:rgba(255,165,0,0.4)"><strong>Fun Mode</strong></div></div>
-        <div id="aiWarning" style="display:none;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:6px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#ff8888">WARNING: Wordle-style modes can be easily cheated with AI tools (ChatGPT, etc). Do not use for giveaways.</div>
+        <div class="mode-tabs" id="modeTabsWrap"><div class="mode-tab active" data-mode="wordle"><strong>Wordle</strong></div><div class="mode-tab" data-mode="noHints"><strong>Hard Mode</strong></div><div class="mode-tab" data-mode="fun" style="border-color:rgba(255,165,0,0.4)"><strong>Fun Mode</strong></div></div>
+        <div id="aiWarning" style="display:block;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:6px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#ff8888">WARNING: Wordle-style modes can be easily cheated with AI tools (ChatGPT, etc). Do not use for giveaways.</div>
         <div id="funModeInfo" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:6px;padding:10px;margin-bottom:12px;font-size:0.85em;color:#cca050">Fun Mode: 60-second rounds with Wordle-style feedback and x100 word pool. Auto-restarts after each round. Words can be any length.</div>
         <div id="wordSettingsWrap">
         <div class="form-group"><label>Target Word</label><input type="text" id="wordInput" placeholder="Leave empty to auto-roll, or type a custom word"></div>
         <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:16px" id="wordLengthRow"><div class="form-group" style="margin-bottom:0;flex:1"><label>Word Length</label><select id="wordLength"><option value="4">4 Letters</option><option value="5" selected>5 Letters</option><option value="6">6 Letters</option><option value="7">7 Letters</option></select></div><button class="button button-secondary button-sm" onclick="generateRandomWord()" style="height:38px">Random Word</button></div>
+        <div class="checkbox-group" style="margin-bottom:6px"><input type="checkbox" id="shuffleLengthToggle" onchange="toggleShuffleLength()"><label for="shuffleLengthToggle">Shuffle word length (random 4-7 letters each round)</label></div>
+        <div class="checkbox-group" style="margin-bottom:16px"><input type="checkbox" id="hideLetterCountToggle" onchange="toggleHideLetterCount()"><label for="hideLetterCountToggle">Hide letter count from viewers</label></div>
         </div>
 
-        <div id="winnerHistoryWrap"><div class="winner-history" id="winnerHistory" style="display:none"><h3>Winner History</h3><div class="wh-list" id="winnerHistoryList"></div></div></div>
-
         <div id="settingsWrap">
+
+        <div style="margin-bottom:16px">
+          <div class="checkbox-group"><input type="checkbox" id="tenXPoolToggle" onchange="toggleTenXPool()"><label for="tenXPoolToggle">x10 Word Pool</label></div>
+          <div class="expanded-warning" id="tenXPoolWarning" style="display:none"><strong>WARNING:</strong> x10 mode pulls from <span id="tenXPoolCount">0</span> words. Words can be any length and some may be very obscure.</div>
+          <div class="checkbox-group" style="margin-top:6px"><input type="checkbox" id="expandedPoolToggle" onchange="toggleExpandedPool()"><label for="expandedPoolToggle">x100 Word Pool (use full accepted guesses list)</label></div>
+          <div class="expanded-warning" id="expandedPoolWarning" style="display:none"><strong>WARNING:</strong> x100 mode pulls from <span id="expandedPoolCount">0</span> words. Words can be any length and some may be very obscure.</div>
+        </div>
 
         <div class="collapsible" id="prizeCollapsible">
           <div class="collapsible-header" onclick="toggleCollapsible('prizeCollapsible')"><span class="arrow">▸</span><span class="col-title">Prize Display</span></div>
@@ -192,40 +206,38 @@
           <div class="collapsible-body">
             <div class="checkbox-group"><input type="checkbox" id="autoRestartToggle" onchange="toggleAutoRestart()"><label for="autoRestartToggle">Auto-start new game after a win</label></div>
             <div class="form-group" style="margin-top:8px"><label>Countdown (seconds)</label><input type="number" id="autoRestartSecondsInput" value="60" min="10" max="300" onchange="updateAutoRestartSeconds()"></div>
-            <div class="checkbox-group" style="margin-top:8px"><input type="checkbox" id="shuffleLengthToggle" onchange="toggleShuffleLength()"><label for="shuffleLengthToggle">Shuffle word length (random 4-7 letters each round)</label></div>
-          </div>
-        </div>
-
-        <div class="collapsible" id="wordPoolCollapsible">
-          <div class="collapsible-header" onclick="toggleCollapsible('wordPoolCollapsible')"><span class="arrow">▸</span><span class="col-title">Word Pool & Display</span></div>
-          <div class="collapsible-body">
-            <div class="checkbox-group"><input type="checkbox" id="expandedPoolToggle" onchange="toggleExpandedPool()"><label for="expandedPoolToggle">x100 Word Pool (use full accepted guesses list)</label></div>
-            <div class="expanded-warning" id="expandedPoolWarning" style="display:none"><strong>WARNING:</strong> x100 mode pulls from <span id="expandedPoolCount">0</span> words. Words can be any length and some may be very obscure.</div>
-            <div class="checkbox-group" style="margin-top:10px"><input type="checkbox" id="hideLetterCountToggle" onchange="toggleHideLetterCount()"><label for="hideLetterCountToggle">Hide letter count from viewers</label></div>
           </div>
         </div>
 
         </div>
 
         <div id="wordleSettingsWrap">
-        <div class="collapsible" id="wordleSettingsCollapsible" style="display:none">
+        <div class="collapsible" id="wordleSettingsCollapsible" style="display:block">
           <div class="collapsible-header" onclick="toggleCollapsible('wordleSettingsCollapsible')"><span class="arrow">▸</span><span class="col-title">Wordle Settings</span></div>
           <div class="collapsible-body" id="wordleSettings">
             <div class="checkbox-group"><input type="checkbox" id="cooldownEnabled"><label for="cooldownEnabled">Enable Cooldown</label></div>
             <div class="form-group"><label>Cooldown (seconds)</label><input type="number" id="cooldownSeconds" value="5" min="1" max="60"></div>
             <div class="form-group"><label>Max Guesses Per User (0 = unlimited)</label><input type="number" id="maxGuesses" value="0" min="0" max="20"></div>
-            <div class="checkbox-group"><input type="checkbox" id="timerEnabled"><label for="timerEnabled">Enable Round Timer</label></div>
-            <div class="form-group"><label>Timer (minutes)</label><input type="number" id="timerMinutes" value="10" min="1" max="60"></div>
+
           </div>
         </div>
         <div id="hintsPreviewWrap">
-        <div class="collapsible" id="hintsCollapsible">
+        <div class="collapsible" id="hintsCollapsible" style="display:none">
           <div class="collapsible-header" onclick="toggleCollapsible('hintsCollapsible')"><span class="arrow">▸</span><span class="col-title">Hints</span></div>
           <div class="collapsible-body">
             <div class="checkbox-group" style="margin-bottom:10px"><input type="checkbox" id="hintsEnabled" checked><label for="hintsEnabled">Enable Progressive Hints</label></div>
             <div id="hintsPreview"></div>
           </div>
         </div>
+        </div>
+
+        <div class="collapsible" id="roundTimerCollapsible">
+          <div class="collapsible-header" onclick="toggleCollapsible('roundTimerCollapsible')"><span class="arrow">▸</span><span class="col-title">Round Timer</span></div>
+          <div class="collapsible-body">
+            <div class="checkbox-group"><input type="checkbox" id="timerEnabled"><label for="timerEnabled">Enable Round Timer</label></div>
+            <div class="form-group"><label>Timer (minutes)</label><input type="number" id="timerMinutes" value="10" min="1" max="60"></div>
+            <div style="color:#888;font-size:0.85em;margin-top:6px">When enabled, the elapsed timer on the viewer page is replaced with a countdown. The round ends automatically when time runs out.</div>
+          </div>
         </div>
         </div>
 
@@ -262,19 +274,33 @@
         </div>
         <div class="marbles-section"><h3>Marbles Integration</h3><div class="marbles-info">For Marbles: run Custom Game with Bots, set bot count to match player count, then import the CSV. Title shows the number of entries. Boosts don't work.</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="button button-secondary button-sm" onclick="downloadParticipants()">Download CSV</button><button class="button button-danger button-sm" onclick="clearParticipants()">Clear List</button><span id="participantCount" style="color:#999;font-size:0.85em"></span></div></div>
       </div>
-      <div class="panel game-display"><h2>Game Display</h2><div id="gameContent"><div class="no-game"><h3>No Active Game</h3><p>Start a game to begin</p></div></div></div>
+      <div class="panel game-display">
+        <div id="winnerHistoryWrap">
+          <div class="collapsible" id="winnerHistoryCollapsible" style="display:none;margin-bottom:16px">
+            <div class="collapsible-header" onclick="toggleCollapsible('winnerHistoryCollapsible')" style="background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.25)">
+              <span class="arrow" style="color:#ffd700">▸</span>
+              <span class="col-title" style="color:#ffd700">Winner History</span>
+              <span id="winnerHistoryCount" style="color:#888;font-size:0.8em;margin-left:auto"></span>
+            </div>
+            <div class="collapsible-body" style="border-color:rgba(255,215,0,0.25)">
+              <div class="wh-list" id="winnerHistoryList" style="max-height:250px;overflow-y:auto"></div>
+            </div>
+          </div>
+        </div>
+        <h2>Game Display</h2>
+        <div id="gameContent"><div class="no-game"><h3>No Active Game</h3><p>Start a game to begin</p></div></div>
+      </div>
     </div>
   </div>
   <div id="noAccess" style="display:none;text-align:center;padding:100px 20px">
     <h2 style="color:#ff6666;margin-bottom:15px">Access Denied</h2>
     <p style="color:#999;font-size:1.2em">Invalid or missing admin token. Open Admin from the viewer page to get access.</p>
   </div>
-  <div class="credit">Created by OsrsSolutions</div>
   <script>
     var params = new URLSearchParams(window.location.search);
     var adminToken = params.get('token');
     var roomId = null;
-    var ws = null, currentMode = 'noHints', gameState = null, editingHints = {};
+    var ws = null, currentMode = 'wordle', gameState = null, editingHints = {};
     var wordManuallyEdited = false;
     var isModSession = false, modPerms = null, modExpires = null;
 
@@ -432,23 +458,25 @@
       if (gameState.autoRestart !== undefined) document.getElementById('autoRestartToggle').checked = gameState.autoRestart;
       if (gameState.autoRestartSeconds !== undefined) document.getElementById('autoRestartSecondsInput').value = gameState.autoRestartSeconds;
       if (gameState.expandedWordPool !== undefined) { document.getElementById('expandedPoolToggle').checked = gameState.expandedWordPool; document.getElementById('expandedPoolWarning').style.display = gameState.expandedWordPool ? 'block' : 'none'; if (gameState.allowedGuessesCount) document.getElementById('expandedPoolCount').textContent = gameState.allowedGuessesCount.toLocaleString(); }
+      if (gameState.tenXWordPool !== undefined) { document.getElementById('tenXPoolToggle').checked = gameState.tenXWordPool; document.getElementById('tenXPoolWarning').style.display = gameState.tenXWordPool ? 'block' : 'none'; if (gameState.moreWordsCount) document.getElementById('tenXPoolCount').textContent = gameState.moreWordsCount.toLocaleString(); }
       if (gameState.shuffleWordLength !== undefined) document.getElementById('shuffleLengthToggle').checked = gameState.shuffleWordLength;
       if (gameState.hideLetterCount !== undefined) document.getElementById('hideLetterCountToggle').checked = gameState.hideLetterCount;
       if (gameState.prizeAmount) { document.getElementById('prizeToggle').checked = true; document.getElementById('prizeInputGroup').style.display = 'block'; document.getElementById('prizeInput').value = gameState.prizeAmount; } else { document.getElementById('prizeToggle').checked = false; document.getElementById('prizeInputGroup').style.display = 'none'; }
     }
 
-    document.querySelectorAll('.mode-tab').forEach(function(tab) { tab.addEventListener('click', function() { document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); }); tab.classList.add('active'); currentMode = tab.dataset.mode; document.getElementById('wordleSettingsCollapsible').style.display = currentMode === 'wordle' ? 'block' : 'none'; document.getElementById('hintsCollapsible').style.display = currentMode === 'noHints' ? 'block' : 'none'; document.getElementById('aiWarning').style.display = (currentMode === 'wordle' || currentMode === 'fun') ? 'block' : 'none'; document.getElementById('funModeInfo').style.display = currentMode === 'fun' ? 'block' : 'none'; document.getElementById('wordLengthRow').style.display = currentMode === 'fun' ? 'none' : 'flex'; }); });
+    document.querySelectorAll('.mode-tab').forEach(function(tab) { tab.addEventListener('click', function() { document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); }); tab.classList.add('active'); currentMode = tab.dataset.mode; document.getElementById('wordleSettingsCollapsible').style.display = currentMode === 'wordle' ? 'block' : 'none'; document.getElementById('hintsCollapsible').style.display = currentMode === 'noHints' ? 'block' : 'none'; document.getElementById('roundTimerCollapsible').style.display = (currentMode === 'wordle' || currentMode === 'noHints') ? 'block' : 'none'; document.getElementById('aiWarning').style.display = (currentMode === 'wordle' || currentMode === 'fun') ? 'block' : 'none'; document.getElementById('funModeInfo').style.display = currentMode === 'fun' ? 'block' : 'none'; document.getElementById('wordLengthRow').style.display = currentMode === 'fun' ? 'none' : 'flex'; }); });
 
     async function generateRandomWord() { try { var res = await adminFetch('/api/words/random?length=' + document.getElementById('wordLength').value); var data = await res.json(); if (data.word) { document.getElementById('wordInput').value = data.word; wordManuallyEdited = true; } } catch (e) {} }
     async function startGame() {
       var word = document.getElementById('wordInput').value.trim();
       var settings = {};
+      var timerSettings = { timerEnabled: document.getElementById('timerEnabled').checked, timerMinutes: parseInt(document.getElementById('timerMinutes').value)||10 };
       if (currentMode === 'wordle') {
-        settings = { cooldownEnabled: document.getElementById('cooldownEnabled').checked, cooldownSeconds: parseInt(document.getElementById('cooldownSeconds').value)||5, maxGuessesPerUser: parseInt(document.getElementById('maxGuesses').value)||0, timerEnabled: document.getElementById('timerEnabled').checked, timerMinutes: parseInt(document.getElementById('timerMinutes').value)||10 };
+        settings = { cooldownEnabled: document.getElementById('cooldownEnabled').checked, cooldownSeconds: parseInt(document.getElementById('cooldownSeconds').value)||5, maxGuessesPerUser: parseInt(document.getElementById('maxGuesses').value)||0, timerEnabled: timerSettings.timerEnabled, timerMinutes: timerSettings.timerMinutes };
       } else if (currentMode === 'noHints') {
         var mins = [3,6,9,12];
         for (var hi = 0; hi < 4; hi++) { var el = document.getElementById('hintMin' + hi); if (el) mins[hi] = parseInt(el.value) || mins[hi]; }
-        settings = { hintsEnabled: document.getElementById('hintsEnabled').checked, hintMinutes: mins };
+        settings = { hintsEnabled: document.getElementById('hintsEnabled').checked, hintMinutes: mins, timerEnabled: timerSettings.timerEnabled, timerMinutes: timerSettings.timerMinutes };
       }
       var body = { mode: currentMode, settings: settings };
       if (currentMode !== 'fun' && word && wordManuallyEdited) { body.word = word; } else { body.autoWord = true; }
@@ -460,6 +488,7 @@
     async function updateAutoRestartSeconds() { try { await adminFetch('/api/game/auto-restart', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('autoRestartToggle').checked, seconds: parseInt(document.getElementById('autoRestartSecondsInput').value) || 60 }) }); } catch (e) {} }
     async function toggleShuffleLength() { try { await adminFetch('/api/game/shuffle-length', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('shuffleLengthToggle').checked }) }); } catch (e) {} }
     async function toggleExpandedPool() { var enabled = document.getElementById('expandedPoolToggle').checked; document.getElementById('expandedPoolWarning').style.display = enabled ? 'block' : 'none'; try { var res = await adminFetch('/api/game/expanded-pool', { method: 'POST', body: JSON.stringify({ enabled: enabled }) }); var data = await res.json(); if (data.wordCount) document.getElementById('expandedPoolCount').textContent = data.wordCount.toLocaleString(); } catch (e) {} }
+    async function toggleTenXPool() { var enabled = document.getElementById('tenXPoolToggle').checked; document.getElementById('tenXPoolWarning').style.display = enabled ? 'block' : 'none'; try { var res = await adminFetch('/api/game/tenx-pool', { method: 'POST', body: JSON.stringify({ enabled: enabled }) }); var data = await res.json(); if (data.wordCount) document.getElementById('tenXPoolCount').textContent = data.wordCount.toLocaleString(); } catch (e) {} }
     async function toggleHideLetterCount() { try { await adminFetch('/api/game/hide-letter-count', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('hideLetterCountToggle').checked }) }); } catch (e) {} }
     function togglePrize() { var on = document.getElementById('prizeToggle').checked; document.getElementById('prizeInputGroup').style.display = on ? 'block' : 'none'; if (!on) { document.getElementById('prizeInput').value = ''; updatePrize(); } }
     async function updatePrize() { var amount = document.getElementById('prizeToggle').checked ? document.getElementById('prizeInput').value.trim() : ''; try { await adminFetch('/api/game/prize', { method: 'POST', body: JSON.stringify({ amount: amount }) }); } catch (e) {} }
@@ -469,6 +498,7 @@
     async function revealHint(i) { try { await adminFetch('/api/game/reveal-hint', { method: 'POST', body: JSON.stringify({ hintIndex: i }) }); } catch (e) {} }
     function openViewer() { if (roomId) window.open('/?room=' + roomId, '_blank', 'width=1200,height=900'); else alert('Room not ready yet'); }
     function copyViewerLink() { if (!roomId) { alert('Room not ready yet'); return; } var url = window.location.origin + '/?room=' + roomId; navigator.clipboard.writeText(url).then(function() { var btns = document.querySelectorAll('.button-primary'); btns.forEach(function(b) { if (b.textContent.match(/copy/i)) { b.textContent = 'Copied!'; setTimeout(function() { b.textContent = 'Copy Viewer Link'; }, 2000); } }); }).catch(function() { prompt('Copy this viewer link:', url); }); }
+    function copyLeaderboardLink() { if (!roomId) { alert('Room not ready yet'); return; } var url = window.location.origin + '/?room=' + roomId + '&view=leaderboard'; navigator.clipboard.writeText(url).then(function() { var btns = document.querySelectorAll('.button-warning'); btns.forEach(function(b) { if (b.textContent.match(/leaderboard/i)) { b.textContent = 'Copied!'; setTimeout(function() { b.textContent = 'Copy Leaderboard Link'; }, 2000); } }); }).catch(function() { prompt('Copy this leaderboard link:', url); }); }
     async function downloadParticipants() { if (!adminToken) return; try { var res = await adminFetch('/api/participants/csv'); var blob = await res.blob(); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = 'participants.csv'; a.click(); URL.revokeObjectURL(url); } catch(e) {} }
     async function clearParticipants() { if (!confirm('Clear the participants list?')) return; try { await adminFetch('/api/participants/clear', { method: 'POST', body: '{}' }); updateParticipantCount(0); } catch(e){} }
     function updateParticipantCount(count) { var el = document.getElementById('participantCount'); if (el) el.textContent = count > 0 ? count + ' chatters tracked' : 'No chatters yet'; }
@@ -481,7 +511,7 @@
       // Hide owner-only sections
       document.getElementById('modAccessSection').style.display = 'none';
       // Title change
-      document.querySelector('.header h1').textContent = 'Chat Guessing Game - Mod Panel';
+      document.querySelector('.header h1').textContent = 'KickPlaysWords - Mod Panel';
       // Permission-based visibility
       if (!modPerms.gameControls) { document.getElementById('startBtnWrap').classList.add('perm-denied'); document.getElementById('stopRevealWrap').classList.add('perm-denied'); }
       if (!modPerms.connectChat) document.getElementById('channelWrap').classList.add('perm-denied');
@@ -613,9 +643,19 @@
         h += '</div>';
       }); h += '</div>'; c.innerHTML = h;
     }
-    function renderWinnerHistory() { var c = document.getElementById('winnerHistory'), l = document.getElementById('winnerHistoryList'); if (!gameState || !gameState.winnerHistory || !gameState.winnerHistory.length) { c.style.display = 'none'; return; } c.style.display = 'block'; l.innerHTML = gameState.winnerHistory.map(function(w) { var t = new Date(w.timestamp).toLocaleTimeString(); return '<div class="wh-item"><span class="wh-user">' + w.username + '</span><span class="wh-word">' + w.word + '</span><span class="wh-info">' + w.totalGuesses + ' guesses | ' + t + '</span></div>'; }).join(''); }
+    function renderWinnerHistory() { var c = document.getElementById('winnerHistoryCollapsible'), l = document.getElementById('winnerHistoryList'), cnt = document.getElementById('winnerHistoryCount'); if (!gameState || !gameState.winnerHistory || !gameState.winnerHistory.length) { if (c) c.style.display = 'none'; return; } if (c) c.style.display = 'block'; if (cnt) cnt.textContent = gameState.winnerHistory.length + ' wins'; l.innerHTML = gameState.winnerHistory.map(function(w) { var t = new Date(w.timestamp).toLocaleTimeString(); return '<div class="wh-item"><span class="wh-user">' + w.username + '</span><span class="wh-word">' + w.word + '</span><span class="wh-info">' + w.totalGuesses + ' guesses | ' + t + '</span></div>'; }).join(''); }
     function renderAdminWord() { if (!gameState) return ''; var best = gameState.bestLetterStatus || {}; return Array(gameState.wordLength).fill(0).map(function(_, i) { var info = best[i]; if (info) return '<div class="letter-box ' + info.status + '">' + info.letter.toUpperCase() + '</div>'; return '<div class="letter-box">?</div>'; }).join(''); }
-    function getAdminTimer() { if (!gameState || !gameState.startTime) return '-'; var end = gameState.endTime || Date.now(); return Math.floor((end - gameState.startTime) / 1000) + 's'; }
+    function getAdminTimer() {
+      if (!gameState || !gameState.startTime) return '-';
+      if (gameState.timerEndTime && gameState.active && !gameState.endTime) {
+        var remaining = Math.max(0, Math.floor((gameState.timerEndTime - Date.now()) / 1000));
+        var mins = Math.floor(remaining / 60);
+        var secs = remaining % 60;
+        return mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
+      var end = gameState.endTime || Date.now();
+      return Math.floor((end - gameState.startTime) / 1000) + 's';
+    }
     function renderGame() {
       var content = document.getElementById('gameContent'), dot = document.getElementById('statusDot');
       if (!gameState || (!gameState.active && !gameState.winner && !gameState.revealedWord && !gameState.stopped)) { dot.classList.remove('active'); content.innerHTML = '<div class="no-game"><h3>No Active Game</h3><p>Start a game to begin</p></div>'; return; }
@@ -627,14 +667,18 @@
       h += '<div class="word-display"><h3>' + (gameState.mode === 'fun' ? 'Fun Mode' : (gameState.mode === 'wordle' ? 'Wordle Mode' : 'Hard Mode')) + '</h3><div class="letters" id="adminWordLetters">' + renderAdminWord() + '</div>';
       if (aw) h += '<div class="actual-word">Answer: ' + aw.toUpperCase() + '</div>';
       h += '</div>';
-      h += '<div class="game-stats"><div class="stat-card"><div class="value" id="adminGuesses">' + (gameState.stats ? gameState.stats.totalGuesses : 0) + '</div><div class="label">Guesses</div></div><div class="stat-card"><div class="value" id="adminPlayers">' + (gameState.stats ? gameState.stats.uniquePlayers : 0) + '</div><div class="label">Players</div></div><div class="stat-card"><div class="value" id="adminTimer">' + getAdminTimer() + '</div><div class="label">Time</div></div></div>';
+      h += '<div class="game-stats"><div class="stat-card"><div class="value" id="adminGuesses">' + (gameState.stats ? gameState.stats.totalGuesses : 0) + '</div><div class="label">Guesses</div></div><div class="stat-card"><div class="value" id="adminPlayers">' + (gameState.stats ? gameState.stats.uniquePlayers : 0) + '</div><div class="label">Players</div></div><div class="stat-card"><div class="value" id="adminTimer">' + getAdminTimer() + '</div><div class="label">' + (gameState.timerEndTime ? 'Time Left' : 'Time') + '</div></div></div>';
       h += '<h3 style="color:#00ff88;margin-bottom:12px">Live Guesses</h3><div class="guesses-feed" id="guessesFeed">';
       if (gameState.guesses && gameState.guesses.length > 0) { gameState.guesses.slice().reverse().forEach(function(g) { h += renderGuess(g); }); }
       else h += '<div style="text-align:center;color:#666;padding:30px">No guesses yet...</div>';
       h += '</div>'; content.innerHTML = h;
     }
     function renderGuess(g) { var t = new Date(g.timestamp).toLocaleTimeString(); var wrongLen = g.result && g.result.wrongLength; var l = ''; if (g.result && g.result.letters && g.result.letters.length > 0) l = g.result.letters.map(function(x) { return '<div class="letter ' + (x.status||'') + '">' + x.letter.toUpperCase() + '</div>'; }).join(''); else if (g.guess) l = g.guess.split('').map(function(x) { return '<div class="letter">' + x.toUpperCase() + '</div>'; }).join(''); return '<div class="guess-item ' + (g.isWinner ? 'winner' : '') + (wrongLen ? ' wrong-length' : '') + '"><div class="username">' + g.username + '</div><div class="guess-word">' + l + '</div><div class="timestamp">' + t + '</div></div>'; }
-    setInterval(function() { if (gameState && gameState.active && gameState.startTime && !gameState.endTime) { var el = document.getElementById('adminTimer'); if (el) el.textContent = Math.floor((Date.now() - gameState.startTime) / 1000) + 's'; } }, 1000);
+    setInterval(function() { if (gameState && gameState.active && gameState.startTime && !gameState.endTime) { var el = document.getElementById('adminTimer'); if (el) { if (gameState.timerEndTime) { var remaining = Math.max(0, Math.floor((gameState.timerEndTime - Date.now()) / 1000)); var mins = Math.floor(remaining / 60); var secs = remaining % 60; el.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs; } else { el.textContent = Math.floor((Date.now() - gameState.startTime) / 1000) + 's'; } } } }, 1000);
   </script>
+  <footer style="text-align:center;padding:20px;margin-top:40px;border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.85em">
+    <p>Contact: <a href="mailto:contact@kickplayswords.com" style="color:#00ff88;text-decoration:none">contact@kickplayswords.com</a> | 
+    GitHub: <a href="https://github.com/SolutionsCMD/KickPlaysWords" target="_blank" rel="noopener" style="color:#00ff88;text-decoration:none">SolutionsCMD/KickPlaysWords</a></p>
+  </footer>
 </body>
 </html>

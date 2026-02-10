@@ -43,6 +43,24 @@ const DEFAULT_WORD_LISTS = {
   7: ['chicken','monster','penguin','rainbow','dolphin','element','diamond','volcano','thunder','phoenix','griffin','unicorn','kingdom','emperor','mystery','fantasy','destiny','harmony','freedom','justice','warrior','sorcery','ancient','eternal','crystal','phantom','journey','triumph','miracle','abandon','absolve','academy','alchemy','almanac','antenna','archive','arsenal','balance','bandage','banquet','baptism','barrier','bastion','battery','beastly','beloved','benefit','bizarre','blanket','blossom','boulder','brigade','broaden','brother','buffalo','cabinet','caliber','captain','capture','caravan','cascade','catalog','caution','ceramic','certain','chamber','channel','chapter','chariot','chemist','chimney','circuit','citadel','climate','cluster','coastal','coaster','cockpit','combine','comfort','command','compact','compass','complex','compose','concept','concert','conduct','confess','confine','conquer','contour','control','convert','costume','cottage','council','country','courage','crafter','creator','cricket','crimson','crusade','cuisine','culture','cumulus','current','curtain','custard','customs','cyclone','cypress','decrypt','default','defense','deliver','despair','destroy','develop','devoted','digital','display','dispute','distant','disturb','dungeon','earlier','eclipse','economy','educate','elegant','embrace','emerald','emotion','enchant','endless','enforce','engrave','episode','erosion','essence','evasion','evident','examine','example','excited','exhibit','expense','explain','exploit','explore','express','extinct','extreme','factory','farming','fashion','feature','fiction','firefly','fixture','flannel','flutter','foliage','foreign','formula','fortune','founder','foxhole','fragile','freight','furnace','gateway','gazelle','general','genuine','giraffe','glacier','gladden','glimpse','glitter','gondola','gorilla','grandma','gravity','grizzly','grounds','habitat','halcyon','hamster','handler','harvest','heading','healthy','heather','heroism','highway','history','horizon','hostile','housing','however','hundred','iceberg','imagine','immense','inquiry','instant','involve','javelin','journal','kinetic','kitchen','lantern','leather','leopard','liberty','lighter','limited','lobster','lottery','luggage','machine','maestro','mammoth','manager','mandate','mansion','marshal','mastery','medical','memento','mercury','methods','militia','mineral','mission','mixture','modular','monitor','moonlit','morning','mundane','narwhal','natural','network','neutron','notable','nuclear','nursery','obscure','october','offense','opinion','optimal','organic','origins','outlook','overall','ovation','pacific','package','pageant','panther','passage','patriot','pattern','payment','peasant','penalty','pension','perfect','picture','pilgrim','pioneer','plastic','playful','plumber','pointer','pottery','poultry','premium','present','primate','private','problem','proceed','produce','profile','program','project','promise','prolong','promote','prophet','prosper','protect','protest','provide','prowler','publish','pyramid','quarter','quarrel','radical','rampart','reactor','reality','rebuild','receive','recover','recruit','reflect','refugee','regular','remains','removal','renewal','replace','request','reserve','resolve','restore','retreat','reunion','revenge','reverse','revolve','rooster','routine','royalty','rupture','rushing','rustler','salvage','samurai','scholar','seaside','section','shelter','shimmer','silence','skeptic','slender','society','soldier','sparrow','special','sponsor','station','stealth','stellar','stirrup','storage','strange','stretch','striker','subject','success','sunrise','support','supreme','surface','surplus','survive','suspect','sustain','swindle','tactics','tempest','tendril','terrain','terrace','thimble','thought','tonnage','tornado','torpedo','tourism','tracker','trading','tragedy','trainer','transit','trawler','tribune','tribute','trigger','trouble','trumpet','tsunami','turbine','typical','umbrage','uncover','uniform','unknown','unravel','uranium','vaccine','vagrant','vanilla','variety','venture','verdict','version','veteran','victory','village','vintage','virtual','vulture','walkway','warlock','warrant','weather','western','whisker','whistle','wildcat','witness','worship','wrangle','written']
 };
 
+// 10x WORD LIST (morewords.txt)
+const MORE_WORDS_FILE = path.join(__dirname, 'morewords.txt');
+let _moreWordsCache = null;
+let _moreWordsMtime = 0;
+function loadMoreWords() {
+  try {
+    if (!fs.existsSync(MORE_WORDS_FILE)) return new Set();
+    const stat = fs.statSync(MORE_WORDS_FILE);
+    if (_moreWordsCache && stat.mtimeMs === _moreWordsMtime) return _moreWordsCache;
+    const text = fs.readFileSync(MORE_WORDS_FILE, 'utf8');
+    _moreWordsCache = new Set(text.split(/[\r\n,]+/).map(w => w.trim().toLowerCase()).filter(w => w.length >= 2 && /^[a-z]+$/.test(w)));
+    _moreWordsMtime = stat.mtimeMs;
+    console.log('[DICT] Loaded ' + _moreWordsCache.size + ' 10x words from morewords.txt');
+    return _moreWordsCache;
+  } catch(e) { return new Set(); }
+}
+let MORE_WORDS = loadMoreWords();
+
 // ALLOWED GUESSES
 const ALLOWED_GUESSES_FILE = path.join(__dirname, 'allowed-guesses.txt');
 let _allowedGuessesCache = null;
@@ -60,18 +78,27 @@ function loadAllowedGuesses() {
   } catch(e) { return new Set(); }
 }
 let ALLOWED_GUESSES = loadAllowedGuesses();
-function isValidGuess(word) { return DICTIONARY.has(word) || ALLOWED_GUESSES.has(word); }
+function isValidGuess(word) { return DICTIONARY.has(word) || ALLOWED_GUESSES.has(word) || MORE_WORDS.has(word); }
 
 // RANDOM WORD PICKER
 function pickRandomWord(room) {
-  if (room.expandedWordPool && ALLOWED_GUESSES.size > 0) {
-    const all = [...ALLOWED_GUESSES].filter(w => !isBlacklisted(w) && w.length >= 2);
-    if (all.length > 0) return all[Math.floor(Math.random() * all.length)];
-  }
   let len = room.preferredWordLength;
   if (room.shuffleWordLength) {
     const lengths = [4, 5, 6, 7];
     len = lengths[Math.floor(Math.random() * lengths.length)];
+  }
+  if (room.expandedWordPool && ALLOWED_GUESSES.size > 0) {
+    const all = [...ALLOWED_GUESSES].filter(w => !isBlacklisted(w) && w.length === len);
+    if (all.length > 0) return all[Math.floor(Math.random() * all.length)];
+    // Fallback: any length if none match
+    const fallback = [...ALLOWED_GUESSES].filter(w => !isBlacklisted(w) && w.length >= 2);
+    if (fallback.length > 0) return fallback[Math.floor(Math.random() * fallback.length)];
+  }
+  if (room.tenXWordPool && MORE_WORDS.size > 0) {
+    const all = [...MORE_WORDS].filter(w => !isBlacklisted(w) && w.length === len);
+    if (all.length > 0) return all[Math.floor(Math.random() * all.length)];
+    const fallback = [...MORE_WORDS].filter(w => !isBlacklisted(w) && w.length >= 2);
+    if (fallback.length > 0) return fallback[Math.floor(Math.random() * fallback.length)];
   }
   const words = DEFAULT_WORD_LISTS[len] || DEFAULT_WORD_LISTS[5];
   return words[Math.floor(Math.random() * words.length)];
@@ -116,13 +143,13 @@ function saveRoomsToDisk() {
       data[id] = {
         id: room.id, adminToken: room.adminToken,
         channelUsername: room.channelUsername, chatroomId: room.chatroomId, channelDisplayName: room.channelDisplayName,
-        autoRestart: room.autoRestart, autoRestartSeconds: room.autoRestartSeconds || 60, shuffleWordLength: room.shuffleWordLength, expandedWordPool: room.expandedWordPool, hideLetterCount: room.hideLetterCount, prizeAmount: room.prizeAmount || '',
+        autoRestart: room.autoRestart, autoRestartSeconds: room.autoRestartSeconds || 60, shuffleWordLength: room.shuffleWordLength, expandedWordPool: room.expandedWordPool, tenXWordPool: room.tenXWordPool, hideLetterCount: room.hideLetterCount, prizeAmount: room.prizeAmount || '',
         preferredWordLength: room.preferredWordLength, winnerHistory: room.winnerHistory,
         chatParticipants: [...room.chatParticipants],
         lastMode: room.game.mode,
         modTokens: (room.modTokens || []).filter(m => m.expires > Date.now()),
         wordleSettings: room.game.wordleSettings,
-        noHintsSettings: { hintsEnabled: room.game.noHintsSettings.hintsEnabled, hintMinutes: room.game.noHintsSettings.hintMinutes }
+        noHintsSettings: { hintsEnabled: room.game.noHintsSettings.hintsEnabled, hintMinutes: room.game.noHintsSettings.hintMinutes, timerEnabled: !!room.game.noHintsSettings.timerEnabled, timerMinutes: room.game.noHintsSettings.timerMinutes || 10 }
       };
     }
     fs.writeFileSync(ROOMS_FILE, JSON.stringify(data, null, 2));
@@ -137,13 +164,13 @@ function loadRoomsFromDisk() {
         id: saved.id, adminToken: saved.adminToken,
         game: { active: false, stopped: false, mode: saved.lastMode || 'noHints', word: '', wordLength: 5, guesses: [], winner: null, startTime: null, endTime: null,
           wordleSettings: saved.wordleSettings || { allowDuplicates: true, cooldownEnabled: false, cooldownSeconds: 5, maxGuessesPerUser: 0, timerEnabled: false, timerMinutes: 10 },
-          noHintsSettings: { hintsEnabled: saved.noHintsSettings?.hintsEnabled !== false, hintMinutes: saved.noHintsSettings?.hintMinutes || [3,6,9,12], hints: [], hintsRevealed: [] },
+          noHintsSettings: { hintsEnabled: saved.noHintsSettings?.hintsEnabled !== false, hintMinutes: saved.noHintsSettings?.hintMinutes || [3,6,9,12], timerEnabled: !!saved.noHintsSettings?.timerEnabled, timerMinutes: saved.noHintsSettings?.timerMinutes || 10, hints: [], hintsRevealed: [] },
           userLastGuess: {}, stats: { totalGuesses: 0, uniquePlayers: new Set() }, bestLetterStatus: {}, revealedWord: null,
           lockedGreens: {}, positionYellows: {}, knownInWord: new Set(), triedLetters: new Set(), lastGuessResult: null },
         channelUsername: saved.channelUsername || '', chatroomId: saved.chatroomId || null, channelDisplayName: saved.channelDisplayName || '',
         clients: new Set(), hintTimers: [], chatRelayConnected: false,
         autoRestart: !!saved.autoRestart, autoRestartTimer: null, autoRestartCountdown: 0, autoRestartSeconds: saved.autoRestartSeconds || 60,
-        shuffleWordLength: !!saved.shuffleWordLength, expandedWordPool: !!saved.expandedWordPool, hideLetterCount: !!saved.hideLetterCount, prizeAmount: saved.prizeAmount || '',
+        shuffleWordLength: !!saved.shuffleWordLength, expandedWordPool: !!saved.expandedWordPool, tenXWordPool: !!saved.tenXWordPool, hideLetterCount: !!saved.hideLetterCount, prizeAmount: saved.prizeAmount || '',
         preferredWordLength: saved.preferredWordLength || 5, winnerHistory: saved.winnerHistory || [],
         chatParticipants: new Set(saved.chatParticipants || []),
         winnerChatLog: [],
@@ -170,13 +197,13 @@ function createRoom() {
     id: roomId, adminToken,
     game: { active: false, stopped: false, mode: 'noHints', word: '', wordLength: 5, guesses: [], winner: null, startTime: null, endTime: null,
       wordleSettings: { allowDuplicates: true, cooldownEnabled: false, cooldownSeconds: 5, maxGuessesPerUser: 0, timerEnabled: false, timerMinutes: 10 },
-      noHintsSettings: { hintsEnabled: true, hintMinutes: [3, 6, 9, 12], hints: [], hintsRevealed: [] },
+      noHintsSettings: { hintsEnabled: true, hintMinutes: [3, 6, 9, 12], hints: [], hintsRevealed: [], timerEnabled: false, timerMinutes: 10 },
       userLastGuess: {}, stats: { totalGuesses: 0, uniquePlayers: new Set() }, bestLetterStatus: {}, revealedWord: null,
       lockedGreens: {}, positionYellows: {}, knownInWord: new Set(), triedLetters: new Set(), lastGuessResult: null },
     channelUsername: '', chatroomId: null, channelDisplayName: '',
     clients: new Set(), hintTimers: [], chatRelayConnected: false,
     autoRestart: false, autoRestartTimer: null, autoRestartCountdown: 0, autoRestartSeconds: 60,
-    shuffleWordLength: false, expandedWordPool: false, hideLetterCount: false, prizeAmount: '',
+    shuffleWordLength: false, expandedWordPool: false, tenXWordPool: false, hideLetterCount: false, prizeAmount: '',
     preferredWordLength: 5, winnerHistory: [],
     chatParticipants: new Set(),
     winnerChatLog: [],
@@ -216,14 +243,24 @@ function startRoomGame(room, word, mode, settings) {
   room.game = {
     active: true, stopped: false, mode, word: word.toLowerCase(), wordLength: word.length, guesses: [], winner: null, startTime: Date.now(), endTime: null,
     wordleSettings: (mode === 'wordle' || isFun) ? (isFun ? { cooldownEnabled: false, cooldownSeconds: 0, maxGuessesPerUser: 0, timerEnabled: true, timerMinutes: 1 } : settings) : room.game.wordleSettings,
-    noHintsSettings: mode === 'noHints' ? { hintsEnabled: settings.hintsEnabled !== false, hintMinutes: settings.hintMinutes || [3,6,9,12], hints: hints, hintsRevealed: [] } : room.game.noHintsSettings,
+    noHintsSettings: mode === 'noHints' ? { hintsEnabled: settings.hintsEnabled !== false, hintMinutes: settings.hintMinutes || [3,6,9,12], hints: hints, hintsRevealed: [], timerEnabled: !!settings.timerEnabled, timerMinutes: settings.timerMinutes || 10 } : room.game.noHintsSettings,
     userLastGuess: {}, stats: { totalGuesses: 0, uniquePlayers: new Set() }, bestLetterStatus: {}, revealedWord: null,
     lockedGreens: {}, positionYellows: {}, knownInWord: new Set(), triedLetters: new Set(), lastGuessResult: null,
-    funTimer: null
+    funTimer: null, roundTimer: null, timerEndTime: null
   };
+  
+  // Set up timerEndTime BEFORE broadcast so clients get it immediately
+  if (isFun) {
+    room.game.timerEndTime = Date.now() + 60000;
+  } else if (settings && settings.timerEnabled && settings.timerMinutes > 0) {
+    room.game.timerEndTime = Date.now() + (settings.timerMinutes * 60 * 1000);
+  }
+  
   console.log('[ROOM:' + room.id + '] Game started (' + mode + ', ' + word.length + ' letters)');
   broadcastToRoom(room, { type: 'gameUpdate', game: getRoomGameState(room) });
   if (mode === 'noHints' && room.game.noHintsSettings.hintsEnabled) startRoomHintTimer(room);
+  
+  // Set up round timer timeouts
   if (isFun) {
     room.game.funTimer = setTimeout(() => {
       if (room.game.active && !room.game.winner) {
@@ -231,13 +268,23 @@ function startRoomGame(room, word, mode, settings) {
         startAutoRestartTimer(room, 10);
       }
     }, 60000);
+  } else if (settings && settings.timerEnabled && settings.timerMinutes > 0) {
+    const timerMs = settings.timerMinutes * 60 * 1000;
+    room.game.roundTimer = setTimeout(() => {
+      if (room.game.active && !room.game.winner) {
+        endRoomGame(room, 'timeout');
+        broadcastToRoom(room, { type: 'gameUpdate', game: getRoomGameState(room) });
+      }
+    }, timerMs);
   }
+  
   saveRoomsToDisk();
 }
 
 function endRoomGame(room, reason) {
-  if (!room.game.active && reason !== 'revealed') return;
+  if (!room.game.active && reason !== 'revealed' && reason !== 'timeout') return;
   if (room.game.funTimer) { clearTimeout(room.game.funTimer); room.game.funTimer = null; }
+  if (room.game.roundTimer) { clearTimeout(room.game.roundTimer); room.game.roundTimer = null; }
   if (reason === 'revealed' && !room.game.active) {
     room.game.revealedWord = room.game.word;
     for (let i = 0; i < room.game.word.length; i++) room.game.bestLetterStatus[i] = { letter: room.game.word[i], status: 'correct' };
@@ -249,7 +296,7 @@ function endRoomGame(room, reason) {
     room.winnerHistory.unshift({ username: room.game.winner, word: room.game.word, timestamp: Date.now(), totalGuesses: room.game.stats.totalGuesses, uniquePlayers: room.game.stats.uniquePlayers.size });
     if (room.winnerHistory.length > 50) room.winnerHistory.pop();
   }
-  if (reason === 'won' || reason === 'revealed') {
+  if (reason === 'won' || reason === 'revealed' || reason === 'timeout') {
     room.game.revealedWord = room.game.word;
     for (let i = 0; i < room.game.word.length; i++) room.game.bestLetterStatus[i] = { letter: room.game.word[i], status: 'correct' };
   }
@@ -258,7 +305,7 @@ function endRoomGame(room, reason) {
   clearRoomHintTimers(room);
   broadcastToRoom(room, { type: 'gameEnded', game: getRoomGameState(room), endReason: reason });
   logGame(getRoomGameState(room), room.id);
-  if (reason === 'won' && (room.autoRestart || room.game.mode === 'fun')) startAutoRestartTimer(room, room.game.mode === 'fun' ? 10 : (room.autoRestartSeconds || 60));
+  if ((reason === 'won' || reason === 'timeout') && (room.autoRestart || room.game.mode === 'fun')) startAutoRestartTimer(room, room.game.mode === 'fun' ? 10 : (room.autoRestartSeconds || 60));
   saveRoomsToDisk();
 }
 
@@ -284,7 +331,7 @@ function autoStartNewGame(room) {
   } else {
     word = pickRandomWord(room);
   }
-  const settings = (mode === 'wordle' || mode === 'fun') ? room.game.wordleSettings : { hintsEnabled: room.game.noHintsSettings.hintsEnabled, hintMinutes: room.game.noHintsSettings.hintMinutes };
+  const settings = (mode === 'wordle' || mode === 'fun') ? room.game.wordleSettings : { hintsEnabled: room.game.noHintsSettings.hintsEnabled, hintMinutes: room.game.noHintsSettings.hintMinutes, timerEnabled: room.game.noHintsSettings.timerEnabled, timerMinutes: room.game.noHintsSettings.timerMinutes };
   startRoomGame(room, word, mode, settings);
 }
 
@@ -371,6 +418,17 @@ function processGuess(room, username, guess) {
     endRoomGame(room, 'won'); broadcastLeaderboard(room); return;
   }
   broadcastToRoom(room, { type: 'newGuess', guess: guessData, game: getRoomGameState(room) });
+
+  // EASTER EGG: Check if all positions are green but nobody guessed the actual word
+  if ((game.mode === 'wordle' || game.mode === 'fun') && game.active && !game.winner) {
+    const allGreens = game.word.length > 0 && Object.keys(game.lockedGreens).length === game.word.length;
+    if (allGreens) {
+      // Every position is green — the word was "spelled out" by collective guesses
+      broadcastToRoom(room, { type: 'easterEgg', message: 'The word was revealed letter by letter! 🎉 Nobody guessed it, but everyone found the letters!', word: game.word });
+      endRoomGame(room, 'revealed');
+      if (room.autoRestart || game.mode === 'fun') startAutoRestartTimer(room, game.mode === 'fun' ? 10 : (room.autoRestartSeconds || 60));
+    }
+  }
 }
 
 function evaluateGuess(game, guess) {
@@ -429,10 +487,12 @@ function getRoomGameState(room) {
     channelName: room.channelDisplayName || '',
     roomId: room.id, autoRestart: room.autoRestart, autoRestartSeconds: room.autoRestartSeconds || 60,
     expandedWordPool: room.expandedWordPool,
+    tenXWordPool: room.tenXWordPool,
     hideLetterCount: room.hideLetterCount,
     prizeAmount: room.prizeAmount || '',
     winnerChatLog: room.winnerChatLog || [],
-    funTimeLeft: g.mode === 'fun' && g.active ? Math.max(0, 60 - Math.floor((Date.now() - g.startTime) / 1000)) : null
+    funTimeLeft: g.mode === 'fun' && g.active ? Math.max(0, 60 - Math.floor((Date.now() - g.startTime) / 1000)) : null,
+    timerEndTime: g.timerEndTime || null
   };
 }
 function getRoomAdminState(room) {
@@ -444,10 +504,11 @@ function getRoomAdminState(room) {
     channelUsername: room.channelUsername, chatroomId: room.chatroomId,
     chatParticipantCount: room.chatParticipants.size,
     expandedWordPool: room.expandedWordPool,
+    tenXWordPool: room.tenXWordPool,
     shuffleWordLength: room.shuffleWordLength,
     hideLetterCount: room.hideLetterCount,
     prizeAmount: room.prizeAmount || '',
-    allowedGuessesCount: ALLOWED_GUESSES.size };
+    allowedGuessesCount: ALLOWED_GUESSES.size, moreWordsCount: MORE_WORDS.size };
 }
 function getModAdminState(room, perms) {
   const state = getRoomAdminState(room);
@@ -567,6 +628,8 @@ app.get('/api/game', (req, res) => {
   res.json({ game: getRoomGameState(r) });
 });
 app.get('/api/leaderboard', (req, res) => res.json({ leaderboard: getLeaderboardForClient(req.query.room || '') }));
+// Public leaderboard page
+app.get('/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ADMIN API
 app.post('/api/channel/connect', adminOnly, requirePerm('connectChat'), (req, res) => {
@@ -624,6 +687,11 @@ app.post('/api/game/expanded-pool', adminOnly, requirePerm('changeSettings'), (r
   req.room.expandedWordPool = !!req.body.enabled;
   saveRoomsToDisk();
   res.json({ success: true, expandedWordPool: req.room.expandedWordPool, wordCount: ALLOWED_GUESSES.size });
+});
+app.post('/api/game/tenx-pool', adminOnly, requirePerm('changeSettings'), (req, res) => {
+  req.room.tenXWordPool = !!req.body.enabled;
+  saveRoomsToDisk();
+  res.json({ success: true, tenXWordPool: req.room.tenXWordPool, wordCount: MORE_WORDS.size });
 });
 app.post('/api/game/hide-letter-count', adminOnly, requirePerm('changeSettings'), (req, res) => {
   req.room.hideLetterCount = !!req.body.enabled;
@@ -733,6 +801,6 @@ app.post('/api/participants/clear', adminOnly, requirePerm('changeSettings'), (r
   res.json({ success: true });
 });
 
-const server = app.listen(PORT, () => { console.log('\n  Chat Guessing Game Server\n  Port ' + PORT + '\n  Dictionary: ' + DICTIONARY.size + ' words\n  Allowed guesses: ' + ALLOWED_GUESSES.size + '\n  Rooms restored: ' + rooms.size + '\n  Word lists: ' + Object.entries(DEFAULT_WORD_LISTS).map(([k,v]) => k + '=' + v.length).join(', ') + '\n'); });
+const server = app.listen(PORT, () => { console.log('\n  Chat Guessing Game Server\n  Port ' + PORT + '\n  Dictionary: ' + DICTIONARY.size + ' words\n  Allowed guesses: ' + ALLOWED_GUESSES.size + '\n  10x words: ' + MORE_WORDS.size + '\n  Rooms restored: ' + rooms.size + '\n  Word lists: ' + Object.entries(DEFAULT_WORD_LISTS).map(([k,v]) => k + '=' + v.length).join(', ') + '\n'); });
 server.on('upgrade', (req, socket, head) => { wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req)); });
 process.on('SIGINT', () => { saveRoomsToDisk(); for (const r of rooms.values()) { clearRoomHintTimers(r); clearAutoRestartTimer(r); } server.close(() => process.exit(0)); });
