@@ -187,9 +187,7 @@
         <div id="settingsWrap">
 
         <div style="margin-bottom:16px">
-          <div class="checkbox-group"><input type="checkbox" id="tenXPoolToggle" onchange="toggleTenXPool()"><label for="tenXPoolToggle">x10 Word Pool</label></div>
-          <div class="expanded-warning" id="tenXPoolWarning" style="display:none"><strong>WARNING:</strong> x10 mode pulls from <span id="tenXPoolCount">0</span> words. Words can be any length and some may be very obscure.</div>
-          <div class="checkbox-group" style="margin-top:6px"><input type="checkbox" id="expandedPoolToggle" onchange="toggleExpandedPool()"><label for="expandedPoolToggle">x100 Word Pool (use full accepted guesses list)</label></div>
+          <div class="checkbox-group"><input type="checkbox" id="expandedPoolToggle" onchange="toggleExpandedPool()"><label for="expandedPoolToggle">x100 Word Pool (use full accepted guesses list)</label></div>
           <div class="expanded-warning" id="expandedPoolWarning" style="display:none"><strong>WARNING:</strong> x100 mode pulls from <span id="expandedPoolCount">0</span> words. Words can be any length and some may be very obscure.</div>
         </div>
 
@@ -458,7 +456,6 @@
       if (gameState.autoRestart !== undefined) document.getElementById('autoRestartToggle').checked = gameState.autoRestart;
       if (gameState.autoRestartSeconds !== undefined) document.getElementById('autoRestartSecondsInput').value = gameState.autoRestartSeconds;
       if (gameState.expandedWordPool !== undefined) { document.getElementById('expandedPoolToggle').checked = gameState.expandedWordPool; document.getElementById('expandedPoolWarning').style.display = gameState.expandedWordPool ? 'block' : 'none'; if (gameState.allowedGuessesCount) document.getElementById('expandedPoolCount').textContent = gameState.allowedGuessesCount.toLocaleString(); }
-      if (gameState.tenXWordPool !== undefined) { document.getElementById('tenXPoolToggle').checked = gameState.tenXWordPool; document.getElementById('tenXPoolWarning').style.display = gameState.tenXWordPool ? 'block' : 'none'; if (gameState.moreWordsCount) document.getElementById('tenXPoolCount').textContent = gameState.moreWordsCount.toLocaleString(); }
       if (gameState.shuffleWordLength !== undefined) document.getElementById('shuffleLengthToggle').checked = gameState.shuffleWordLength;
       if (gameState.hideLetterCount !== undefined) document.getElementById('hideLetterCountToggle').checked = gameState.hideLetterCount;
       if (gameState.prizeAmount) { document.getElementById('prizeToggle').checked = true; document.getElementById('prizeInputGroup').style.display = 'block'; document.getElementById('prizeInput').value = gameState.prizeAmount; } else { document.getElementById('prizeToggle').checked = false; document.getElementById('prizeInputGroup').style.display = 'none'; }
@@ -488,7 +485,6 @@
     async function updateAutoRestartSeconds() { try { await adminFetch('/api/game/auto-restart', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('autoRestartToggle').checked, seconds: parseInt(document.getElementById('autoRestartSecondsInput').value) || 60 }) }); } catch (e) {} }
     async function toggleShuffleLength() { try { await adminFetch('/api/game/shuffle-length', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('shuffleLengthToggle').checked }) }); } catch (e) {} }
     async function toggleExpandedPool() { var enabled = document.getElementById('expandedPoolToggle').checked; document.getElementById('expandedPoolWarning').style.display = enabled ? 'block' : 'none'; try { var res = await adminFetch('/api/game/expanded-pool', { method: 'POST', body: JSON.stringify({ enabled: enabled }) }); var data = await res.json(); if (data.wordCount) document.getElementById('expandedPoolCount').textContent = data.wordCount.toLocaleString(); } catch (e) {} }
-    async function toggleTenXPool() { var enabled = document.getElementById('tenXPoolToggle').checked; document.getElementById('tenXPoolWarning').style.display = enabled ? 'block' : 'none'; try { var res = await adminFetch('/api/game/tenx-pool', { method: 'POST', body: JSON.stringify({ enabled: enabled }) }); var data = await res.json(); if (data.wordCount) document.getElementById('tenXPoolCount').textContent = data.wordCount.toLocaleString(); } catch (e) {} }
     async function toggleHideLetterCount() { try { await adminFetch('/api/game/hide-letter-count', { method: 'POST', body: JSON.stringify({ enabled: document.getElementById('hideLetterCountToggle').checked }) }); } catch (e) {} }
     function togglePrize() { var on = document.getElementById('prizeToggle').checked; document.getElementById('prizeInputGroup').style.display = on ? 'block' : 'none'; if (!on) { document.getElementById('prizeInput').value = ''; updatePrize(); } }
     async function updatePrize() { var amount = document.getElementById('prizeToggle').checked ? document.getElementById('prizeInput').value.trim() : ''; try { await adminFetch('/api/game/prize', { method: 'POST', body: JSON.stringify({ amount: amount }) }); } catch (e) {} }
